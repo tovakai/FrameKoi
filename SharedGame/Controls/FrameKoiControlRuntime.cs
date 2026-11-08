@@ -51,12 +51,16 @@ namespace KK_VR.Controls
             if (FrameKoiInputRuntime.Current == this) FrameKoiInputRuntime.Current = null;
             FrameKoiInputRuntime.RoamingAllowed = false;
         }
-        private static object Read(object target, string property)
+        private static object ReadScene(string property)
         {
-            if (target == null) return null;
-            return target.GetType().GetProperty(property)?.GetValue(target, null);
+#if KK
+            var target = Manager.Scene.Instance;
+            return target == null ? null : target.GetType().GetProperty(property)?.GetValue(target, null);
+#else
+            return typeof(Manager.Scene).GetProperty(property, BindingFlags.Public | BindingFlags.Static)?.GetValue(null, null);
+#endif
         }
-        private static bool Flag(object target, string property) => Read(target, property) is bool value && value;
+        private static bool SceneFlag(string property) => ReadScene(property) is bool value && value;
         private static bool SteamFocusLost()
         {
             var system = OpenVR.System;
@@ -72,9 +76,8 @@ namespace KK_VR.Controls
             var input = KoikGameInterp.SceneInput;
             if (_router.Context != null && !ReferenceEquals(_router.Context.Owner, input)) _ui.SceneMenuVisible = false;
             var type = KoikGameInterp.CurrentScene;
-            var scene = Manager.Scene.Instance;
-            var loading = Flag(scene, "IsNowLoading") || Flag(scene, "IsNowLoadingFade");
-            var added = Read(scene, "AddSceneName") as string ?? "";
+            var loading = SceneFlag("IsNowLoading") || SceneFlag("IsNowLoadingFade");
+            var added = ReadScene("AddSceneName") as string ?? "";
             var dialogue = type == KoikGameInterp.SceneType.TalkScene ||
                 added.IndexOf("Talk", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("ADV", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -82,8 +85,8 @@ namespace KK_VR.Controls
                 added.IndexOf("ADV", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("HScene", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("Action", StringComparison.OrdinalIgnoreCase) >= 0;
-            var modal = !baseScene && added.Length != 0 && (Flag(scene, "IsOverlap") ||
-                added != (Read(scene, "LoadSceneName") as string));
+            var modal = !baseScene && added.Length != 0 && (SceneFlag("IsOverlap") ||
+                added != (ReadScene("LoadSceneName") as string));
             var suspended = loading || SteamFocusLost();
             if (suspended) { _reconnecting[0] = true; _reconnecting[1] = true; }
             var profile = FrameKoiContext.Resolve(modal, dialogue, _ui.SceneMenuVisible,
@@ -97,6 +100,7 @@ namespace KK_VR.Controls
                 FrameKoiInputDiagnostics.Log("context-" + next.Profile + "-" + next.Menu,
                     $"context={next.Profile}, modal={next.Blocking}, suspended={suspended}, menu={next.Menu}", 12);
                 _router.Change(next);
+                _reconnecting[0] = true; _reconnecting[1] = true;
             }
             var bindingText = KoikSettings.FrameKoiRoamingBindings.Value + "|" + KoikSettings.FrameKoiSceneBindings.Value + "|" + KoikSettings.FrameKoiMenuBindings.Value;
             if (bindingText != _bindingText)
@@ -122,7 +126,7 @@ namespace KK_VR.Controls
         {
             _pointers[hand] = pointer;
             Sync();
-            if (!FrameKoiNativeInput.Poll()) { _router.Reset(); return; }
+            if (!FrameKoiNativeInput.Poll()) { _router.Reset(); _reconnecting[0] = true; _reconnecting[1] = true; return; }
             if (_router.Context.Suspended) return;
             pointer.CheckMenu();
             var reconnecting = _reconnecting[hand];
@@ -132,12 +136,12 @@ namespace KK_VR.Controls
                 bool previous;
                 _digitalPrevious.TryGetValue(button, out previous);
                 _digitalPrevious[button] = down;
-                if (reconnecting) _router.Seed(hand, button, down);
+                if (_reconnecting[hand]) _router.Seed(hand, button, down);
                 else _router.Sample(hand, button, down);
                 if (previous != down) Sync(); // synchronous UI/game callbacks
             }
             _axes[hand] = FrameKoiNativeInput.Analog(hand == 0 ? "left_stick" : "right_stick");
-            if (reconnecting) _axisBlocked[hand] = _axes[hand].sqrMagnitude > 0.04f;
+            if (reconnecting || _reconnecting[hand]) _axisBlocked[hand] = _axes[hand].sqrMagnitude > 0.04f;
             _reconnecting[hand] = false;
             if (_axes[hand].sqrMagnitude <= 0.04f) _axisBlocked[hand] = false;
             var axis = _axisBlocked[hand] || _router.Context.Suspended || _router.Context.Blocking && hand == 1 ? Vector2.zero : _axes[hand];

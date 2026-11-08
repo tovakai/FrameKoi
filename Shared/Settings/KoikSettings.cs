@@ -136,6 +136,8 @@ namespace KK_VR.Settings
         public static ConfigEntry<bool> FrameKoiExperimentalStickMove { get; private set; }
         public static ConfigEntry<float> FrameKoiMoveSpeed { get; private set; }
         public static ConfigEntry<float> FrameKoiMoveDeadzone { get; private set; }
+        public static ConfigEntry<bool> FrameKoiGameLocomotion { get; private set; }
+        public static ConfigEntry<float> FrameKoiGameMoveScale { get; private set; }
 
         #endregion
 
@@ -396,6 +398,11 @@ namespace KK_VR.Settings
 
             FrameKoiExperimentalStickMove = config.Bind(SectionRoaming, "FrameKoi experimental left stick movement", false,
                 "EXPERIMENTAL. Move the VR origin and protagonist together in the head-facing direction. OFF by default: this path has not been validated against the game's collision and navigation logic.");
+            FrameKoiGameLocomotion = config.Bind(SectionRoaming, "FrameKoi game left stick movement", true,
+                "Native input: feed the left stick through the game's player mover and NavMeshAgent. Right stick turning is unchanged. Triggers become contextual. If the guarded game hook is unavailable, legacy trigger walking remains available.");
+            FrameKoiGameMoveScale = config.Bind(SectionRoaming, "FrameKoi game movement scale", 1f,
+                new ConfigDescription("Scale the game's walk/run speed for analog stick movement. Does not move outside the game's navigation path.",
+                    new AcceptableValueRange<float>(0.25f, 1.5f)));
 
             FrameKoiMoveSpeed = config.Bind(SectionRoaming, "FrameKoi experimental move speed", 1.5f,
                 new ConfigDescription("Experimental left stick movement in meters per second.",

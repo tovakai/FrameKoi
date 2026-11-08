@@ -16,6 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Caress\CaressUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Caress\HandCtrlHooks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\LocationPicker.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiGamepadLocomotion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\HideMaleHead.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\FirstPersonBodyVisibility.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Fixes\GameFixes.cs" />

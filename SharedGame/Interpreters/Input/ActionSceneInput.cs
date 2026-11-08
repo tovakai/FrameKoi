@@ -4,6 +4,7 @@ using System.Text;
 using KK_VR.Camera;
 using KK_VR.Features;
 using KK_VR.Holders;
+using KK_VR.Controls;
 using KK_VR.Settings;
 using UnityEngine;
 using VRGIN.Core;
@@ -25,6 +26,10 @@ namespace KK_VR.Interpreters
         private float _rightStickTurn;
         private Vector2 _leftStickMove;
         private bool _snapStickArmed = true;
+        private bool _stickSprint;
+        internal Vector2 MoveAxis => _leftStickMove;
+        internal bool StickSprint => _stickSprint;
+        internal bool RequestedCrouch => !_standing;
         private Pressed _buttons;
         internal Transform _eyes;
 
@@ -107,6 +112,7 @@ namespace KK_VR.Interpreters
 
         internal override void HandleInput()
         {
+            if (FrameKoiGamepadLocomotion.Enabled && _walking) StopWalking();
             base.HandleInput();
             if (KoikSettings.FrameKoiTurnMode.Value == KoikSettings.FrameKoiTurningMode.Smooth)
             {
@@ -120,14 +126,14 @@ namespace KK_VR.Interpreters
                     ContinuousRotation(_continuousRotation);
                 }
             }
-            if (_walking)
+            if (_walking && !FrameKoiGamepadLocomotion.Enabled)
             {
                 CameraToPlayer(true);
             }
             // This intentionally runs after the legacy camera follow. The native
             // player walk path does not accept a 2D vector, so keep this opt-in
             // until collisions and navigation are tested on real hardware.
-            if (KoikSettings.FrameKoiExperimentalStickMove.Value)
+            if (!FrameKoiGamepadLocomotion.Enabled && KoikSettings.FrameKoiExperimentalStickMove.Value)
             {
                 ApplyFrameKoiLeftStickMovement();
             }
@@ -183,6 +189,16 @@ namespace KK_VR.Interpreters
 
         protected override bool OnTrigger(int index, bool press)
         {
+            if (FrameKoiGamepadLocomotion.Enabled)
+            {
+                _pressedButtons[index, 0] = press;
+                if (press && (actionScene.Player.isGateHit || actionScene.Player.actionTarget != null ||
+                    actionScene.Player.isActionPointHit))
+                    PressButton(Pressed.RightMouse);
+                else if (!IsTriggerPress(0) && !IsTriggerPress(1))
+                    ReleaseButton(Pressed.RightMouse);
+                return false;
+            }
             if (press)
             {
                 _pressedButtons[index, 0] = true;
@@ -242,17 +258,14 @@ namespace KK_VR.Interpreters
 
         internal override void SetFrameKoiLeftStick(Vector2 rawAxis)
         {
-            if (!KoikSettings.FrameKoiExperimentalStickMove.Value)
+            if (!FrameKoiGamepadLocomotion.Enabled && !KoikSettings.FrameKoiExperimentalStickMove.Value)
             {
                 _leftStickMove = Vector2.zero;
                 return;
             }
 
             // Radial deadzone preserves diagonals and proportional movement.
-            var length = Mathf.Min(rawAxis.magnitude, 1f);
-            var deadzone = KoikSettings.FrameKoiMoveDeadzone.Value;
-            _leftStickMove = length <= deadzone ? Vector2.zero :
-                rawAxis.normalized * ((length - deadzone) / (1f - deadzone));
+            _leftStickMove = FrameKoiStickMath.Deadzone(rawAxis, KoikSettings.FrameKoiMoveDeadzone.Value);
         }
 
         private void ApplyFrameKoiLeftStickMovement()
@@ -360,7 +373,8 @@ namespace KK_VR.Interpreters
                 vec = player.position - attachPoint;
             }
             player.rotation = Quaternion.Euler(0f, head.eulerAngles.y, 0f);
-            player.position = head.position + vec;
+            if (!FrameKoiGamepadLocomotion.Enabled)
+                player.position = head.position + vec;
         }
 
         private void UpdateCrouch()
@@ -403,6 +417,11 @@ namespace KK_VR.Interpreters
 
         internal override void FrameKoiSprintClick()
         {
+            if (FrameKoiGamepadLocomotion.Enabled)
+            {
+                if (_leftStickMove.sqrMagnitude > 0.0001f) _stickSprint = !_stickSprint;
+                return;
+            }
             if (_walking) ToggleDash();
         }
 
@@ -431,6 +450,8 @@ namespace KK_VR.Interpreters
             _snapStickArmed = true;
             _standing = true;
             _crouching = false;
+            _stickSprint = false;
+            FrameKoiGamepadLocomotion.RebaseFollow();
             HideMaleHead.ForceHideHead = false;
         }
 
@@ -440,6 +461,7 @@ namespace KK_VR.Interpreters
             {
                 _standing = false;
                 _crouching = buttonPrompt;
+                if (FrameKoiGamepadLocomotion.Enabled) return;
                 if (!Manager.Config.ActData.CrouchCtrlKey)
                 {
                     PressButton(Pressed.Z);
@@ -473,3 +495,4 @@ namespace KK_VR.Interpreters
         }
     }
 }
+

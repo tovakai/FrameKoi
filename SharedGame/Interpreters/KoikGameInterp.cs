@@ -86,6 +86,7 @@ namespace KK_VR.Interpreters
             //    FixupKkSubtitles();
             //}
             _sceneInterpreter.OnLateUpdate();
+            FrameKoiGamepadLocomotion.FollowPlayer();
         }
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {

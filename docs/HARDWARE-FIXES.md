@@ -43,3 +43,35 @@ original states, including nested camera rendering. Initially disabled
 renderers remain disabled. Character/scene/config changes refresh selection.
 The tracked hand models are outside the protagonist hierarchy and are never
 included. No rig, collider, animator or character GameObject is disabled.
+
+## Left-stick locomotion
+
+FrameKoi game left stick movement (1. Roaming) defaults to true for native
+input. The guarded Harmony hook supplies a movement request to the game's
+ActionGame.Chara.Mover.Main.Update and replaces its direction-normalization
+step. The original movement regulation, cursor/pause and event gates, animator
+speed path and NavMeshAgent.Move remain in place. When the game produces zero
+direction, the hook preserves zero. Disabled/off-navmesh agents cannot take
+the game's direct-position fallback under native stick control.
+
+Movement is head-relative with radial deadzone (default 0.2), continuous
+diagonals and analog speed. FrameKoi game movement scale defaults to 1.0
+(range 0.25–1.5), multiplying the game's walk/run speed. Left stick click toggles
+sprint while moving; right-stick smooth turning settings are unchanged.
+The VR origin follows only player displacement already accepted by the game,
+retaining the physical headset offset. Stick movement and smooth yaw do not
+teleport the protagonist to the headset position.
+
+Triggers request contextual gate/character/action-point interaction instead
+of forward walking. Grips keep their hand-only route. If another game build
+or mod changes the expected mover pattern, the hook declines to replace it
+and logs a warning; legacy trigger walking remains the fallback. Set game
+left stick movement false to select that fallback explicitly. The old direct
+origin movement option remains separate, experimental and false by default;
+it is never selected while the game locomotion hook is active.
+
+The mover path was inspected in the installed KK Assembly-CSharp.dll.
+Compatibility with each compiled target does not prove navmesh behavior:
+stairs, corners, slopes, gates, off-mesh links and room-scale/yaw combinations
+must still be tested in the headset. Large scene warps use the existing
+ResetCamera/reload path rather than being treated as stick displacement.

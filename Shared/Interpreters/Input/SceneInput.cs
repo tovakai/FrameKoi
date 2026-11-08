@@ -100,6 +100,11 @@ namespace KK_VR.Interpreters
         {
         }
 
+        // Optional left-controller analog movement; no-op outside roaming.
+        internal virtual void SetFrameKoiLeftStick(Vector2 axis)
+        {
+        }
+
         internal virtual void HandleInput()
         {
             foreach (var wait in _waitList)

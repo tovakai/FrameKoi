@@ -94,6 +94,7 @@ namespace KK_VR.Controls
             if (current != null && root != null && !current.transform.IsChildOf(root)) current = null;
             var next = current == null ? null : y > 0 ? current.FindSelectableOnUp() :
                 y < 0 ? current.FindSelectableOnDown() : x > 0 ? current.FindSelectableOnRight() : current.FindSelectableOnLeft();
+            if (next != null && root != null && !next.transform.IsChildOf(root)) next = null;
             if (next == null && root != null)
                 next = root.GetComponentsInChildren<Selectable>().FirstOrDefault(s => s.IsActive() && s.IsInteractable());
             if (next != null && next.IsActive() && next.IsInteractable()) next.Select();

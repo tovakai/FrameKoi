@@ -121,6 +121,10 @@ static class Program
         var selectable=selected.AddComponent<Selectable>();
         EventSystem.current=new EventSystem { currentSelectedGameObject=selected };
         Check(KoikMenuHandler.SubmitSelectedUI() && ExecuteEvents.Submissions==1,"selected UI is submitted directly");
+        var modalRoot=new GameObject("modal-root");
+        Check(!KoikMenuHandler.SubmitSelectedUI(modalRoot.transform),"foreground modal rejects a background selected control");
+        selected.transform.SetParent(modalRoot.transform,false);
+        Check(KoikMenuHandler.SubmitSelectedUI(modalRoot.transform),"foreground modal accepts its own selected control");
         selectable.interactable=false;
         Check(!KoikMenuHandler.SubmitSelectedUI(),"disabled selectable is not submitted");
         selectable.interactable=true;

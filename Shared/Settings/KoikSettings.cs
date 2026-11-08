@@ -123,6 +123,9 @@ namespace KK_VR.Settings
         public static ConfigEntry<float> FrameKoiSmoothTurnSpeed { get; private set; }
         public static ConfigEntry<bool> FrameKoiRightStickTurning { get; private set; }
         public static ConfigEntry<float> FrameKoiStickDeadzone { get; private set; }
+        public static ConfigEntry<bool> FrameKoiExperimentalStickMove { get; private set; }
+        public static ConfigEntry<float> FrameKoiMoveSpeed { get; private set; }
+        public static ConfigEntry<float> FrameKoiMoveDeadzone { get; private set; }
 
         #endregion
 
@@ -361,6 +364,17 @@ namespace KK_VR.Settings
 
             FrameKoiStickDeadzone = config.Bind(SectionRoaming, "FrameKoi right stick deadzone", 0.2f,
                 new ConfigDescription("Ignore right stick movement near center; also controls turn speed response.",
+                    new AcceptableValueRange<float>(0.05f, 0.5f)));
+
+            FrameKoiExperimentalStickMove = config.Bind(SectionRoaming, "FrameKoi experimental left stick movement", false,
+                "EXPERIMENTAL. Move the VR origin and protagonist together in the head-facing direction. OFF by default: this path has not been validated against the game's collision and navigation logic.");
+
+            FrameKoiMoveSpeed = config.Bind(SectionRoaming, "FrameKoi experimental move speed", 1.5f,
+                new ConfigDescription("Experimental left stick movement in meters per second.",
+                    new AcceptableValueRange<float>(0.2f, 4f)));
+
+            FrameKoiMoveDeadzone = config.Bind(SectionRoaming, "FrameKoi left stick deadzone", 0.2f,
+                new ConfigDescription("Radial deadzone for experimental left stick movement.",
                     new AcceptableValueRange<float>(0.05f, 0.5f)));
 
 

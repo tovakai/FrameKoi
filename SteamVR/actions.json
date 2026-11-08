@@ -1,0 +1,123 @@
+{
+  "action_manifest_version": 0,
+  "action_sets": [
+    {
+      "name": "/actions/framekoi",
+      "usage": "single"
+    }
+  ],
+  "actions": [
+    {
+      "name": "/actions/framekoi/in/left_stick",
+      "type": "vector2"
+    },
+    {
+      "name": "/actions/framekoi/in/right_stick",
+      "type": "vector2"
+    },
+    {
+      "name": "/actions/framekoi/in/left_grip",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/right_grip",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/left_trigger",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/right_trigger",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/left_stick_click",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/right_stick_click",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/left_bumper",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/right_bumper",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/dpad_up",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/dpad_down",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/dpad_left",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/dpad_right",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/left_view",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/right_menu",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/a",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/b",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/x",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/framekoi/in/y",
+      "type": "boolean"
+    }
+  ],
+  "default_bindings": [
+    {
+      "controller_type": "frame_controller",
+      "binding_url": "bindings_frame_controller.json"
+    }
+  ],
+  "localization": [
+    {
+      "language_tag": "en_us",
+      "/actions/framekoi": "FrameKoi Controls",
+      "/actions/framekoi/in/left_stick": "Left Stick",
+      "/actions/framekoi/in/right_stick": "Right Stick",
+      "/actions/framekoi/in/left_grip": "Left Grip",
+      "/actions/framekoi/in/right_grip": "Right Grip",
+      "/actions/framekoi/in/left_trigger": "Left Trigger",
+      "/actions/framekoi/in/right_trigger": "Right Trigger",
+      "/actions/framekoi/in/left_stick_click": "Left Stick Click",
+      "/actions/framekoi/in/right_stick_click": "Right Stick Click",
+      "/actions/framekoi/in/left_bumper": "Left Bumper",
+      "/actions/framekoi/in/right_bumper": "Right Bumper",
+      "/actions/framekoi/in/dpad_up": "Dpad Up",
+      "/actions/framekoi/in/dpad_down": "Dpad Down",
+      "/actions/framekoi/in/dpad_left": "Dpad Left",
+      "/actions/framekoi/in/dpad_right": "Dpad Right",
+      "/actions/framekoi/in/left_view": "Left View",
+      "/actions/framekoi/in/right_menu": "Right Menu",
+      "/actions/framekoi/in/a": "A",
+      "/actions/framekoi/in/b": "B",
+      "/actions/framekoi/in/x": "X",
+      "/actions/framekoi/in/y": "Y"
+    }
+  ]
+}

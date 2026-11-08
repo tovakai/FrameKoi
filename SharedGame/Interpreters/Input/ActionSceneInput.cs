@@ -22,6 +22,8 @@ namespace KK_VR.Interpreters
         private bool _crouching;
         private bool _walking;
         private float _continuousRotation;
+        private float _rightStickTurn;
+        private bool _snapStickArmed = true;
         private Pressed _buttons;
         internal Transform _eyes;
 
@@ -105,9 +107,17 @@ namespace KK_VR.Interpreters
         internal override void HandleInput()
         {
             base.HandleInput();
-            if (_continuousRotation != 0f && KoikSettings.FrameKoiTurnMode.Value == KoikSettings.FrameKoiTurningMode.Smooth)
+            if (KoikSettings.FrameKoiTurnMode.Value == KoikSettings.FrameKoiTurningMode.Smooth)
             {
-                ContinuousRotation(_continuousRotation);
+                if (KoikSettings.FrameKoiRightStickTurning.Value)
+                {
+                    if (_rightStickTurn != 0f)
+                        ContinuousRotation(_rightStickTurn);
+                }
+                else if (_continuousRotation != 0f)
+                {
+                    ContinuousRotation(_continuousRotation);
+                }
             }
             if (_walking)
             {
@@ -142,10 +152,12 @@ namespace KK_VR.Interpreters
                     }
                     break;
                 case TrackpadDirection.Left:
-                    Rotation(-GameSettings.RotationAngle.Value);
+                    if (!KoikSettings.FrameKoiRightStickTurning.Value)
+                        Rotation(-GameSettings.RotationAngle.Value);
                     break;
                 case TrackpadDirection.Right:
-                    Rotation(GameSettings.RotationAngle.Value);
+                    if (!KoikSettings.FrameKoiRightStickTurning.Value)
+                        Rotation(GameSettings.RotationAngle.Value);
                     break;
             }
             return false;
@@ -169,6 +181,47 @@ namespace KK_VR.Interpreters
                 ResetState();
             }
             return false;
+        }
+
+        /// <summary>
+        /// Feed the actual right-controller analog X axis. The caller supplies this
+        /// every frame, including zero, so center/release arms snap turning again.
+        /// Separate from touchpad directional events used by other scenes.
+        /// </summary>
+        internal void SetFrameKoiRightStick(float rawX)
+        {
+            if (!KoikSettings.FrameKoiRightStickTurning.Value)
+            {
+                _rightStickTurn = 0f;
+                _snapStickArmed = true;
+                return;
+            }
+
+            var deadzone = KoikSettings.FrameKoiStickDeadzone.Value;
+            var magnitude = Mathf.Abs(rawX);
+            if (magnitude <= deadzone)
+            {
+                _rightStickTurn = 0f;
+                _snapStickArmed = true;
+                return;
+            }
+
+            var mode = KoikSettings.FrameKoiTurnMode.Value;
+            if (mode == KoikSettings.FrameKoiTurningMode.Smooth)
+            {
+                _rightStickTurn = Mathf.Sign(rawX) *
+                    Mathf.Clamp01((magnitude - deadzone) / (1f - deadzone));
+            }
+            else
+            {
+                _rightStickTurn = 0f;
+                if (mode == KoikSettings.FrameKoiTurningMode.Snap &&
+                    _snapStickArmed && magnitude >= 0.75f)
+                {
+                    SnapRotation(Mathf.Sign(rawX) * GameSettings.RotationAngle.Value);
+                    _snapStickArmed = false;
+                }
+            }
         }
 
         private void Rotation(float degrees)
@@ -308,6 +361,8 @@ namespace KK_VR.Interpreters
             }
             _walking = false;
             _continuousRotation = 0f;
+            _rightStickTurn = 0f;
+            _snapStickArmed = true;
             _standing = true;
             _crouching = false;
             HideMaleHead.ForceHideHead = false;

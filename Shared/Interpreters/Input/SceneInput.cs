@@ -111,6 +111,9 @@ namespace KK_VR.Interpreters
 
         // Scene-scoped UI fallback; never inject an unrestricted world click.
         internal virtual bool ConfirmUI() => false;
+        internal virtual bool NavigateUI(int x, int y) => false;
+        // Special scenes opt in only when their game systems support repositioning.
+        internal virtual void SetSceneMovement(Vector2 axis) { }
 
         // Native controller actions that are independent of legacy trackpad directions.
         internal virtual void FrameKoiSprintClick()

@@ -19,6 +19,7 @@ namespace KK_VR.Controls
         private static GUIQuad _gui;
         internal KoikMenuTool(Controller controller)
         {
+            if (FrameKoiNativeInput.Ready) return;
             if (!_gui 
                 && ((KoikSettings.MainHand.Value == KoikSettings.Handedness.Left && controller == VR.Mode.Left)
                 || (KoikSettings.MainHand.Value == KoikSettings.Handedness.Right && controller == VR.Mode.Right)))
@@ -36,6 +37,10 @@ namespace KK_VR.Controls
         internal static void ToggleState()
         {
             if (_gui != null) _gui.gameObject.SetActive(!_gui.gameObject.activeSelf);
+        }
+        internal static void SuppressLegacyPanel()
+        {
+            if (_gui != null) _gui.gameObject.SetActive(false);
         }
         //internal void TakeGUI(GUIQuad quad)
         //{

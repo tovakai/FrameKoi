@@ -21,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiPoseMath.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiStickMath.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiCrouchCamera.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiSemanticActions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\GripMove.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\GripMoveLag.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\KoikMenuTool.cs" />

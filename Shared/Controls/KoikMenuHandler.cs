@@ -36,6 +36,8 @@ namespace KK_VR.Controls
         private static int _mouseReleaseFrame = -1;
         private static readonly List<KoikMenuHandler> Pointers = new List<KoikMenuHandler>();
         private int _triggerHolds;
+        private PointerEventData _directPress;
+        private GameObject _directTarget;
         internal bool LaserVisible
         {
             get
@@ -63,10 +65,11 @@ namespace KK_VR.Controls
 
         internal void SetLastDirection(Controller.TrackpadDirection direction) => _lastDirection = direction;
 
-        internal static bool SubmitSelectedUI()
+        internal static bool SubmitSelectedUI(Transform root = null)
         {
             var system = EventSystem.current;
             var selected = system?.currentSelectedGameObject;
+            if (root != null && selected != null && !selected.transform.IsChildOf(root)) return false;
             var selectable = selected != null ? selected.GetComponent<Selectable>() : null;
             if (selectable != null && selectable.IsActive() && selectable.IsInteractable())
             {
@@ -192,7 +195,12 @@ namespace KK_VR.Controls
                     UpdateMouse(_lastPointerHit.Value);
                 }
                 if (_triggerHolds++ != 0) return;
-                VR.Input.Mouse.LeftButtonDown();
+                if (!FrameKoiNativeInput.Ready || !BeginDirectUI())
+                {
+                    if (FrameKoiNativeInput.Ready && !KoikSettings.FrameKoiCompatibilityInput.Value)
+                    { _triggerHolds = 0; if (_mouseOwner == this) _mouseOwner = null; return; }
+                    VR.Input.Mouse.LeftButtonDown();
+                }
                 _pressedButtons |= Buttons.Left;
                 _mouseDownPosition = Vector2.Scale(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y), _scaleVector);
             }
@@ -200,11 +208,54 @@ namespace KK_VR.Controls
             {
                 if (_triggerHolds == 0 || --_triggerHolds != 0) return;
                 if ((_pressedButtons & Buttons.Left) == 0) return;
-                VR.Input.Mouse.LeftButtonUp();
+                if (_directPress != null) EndDirectUI(true);
+                else VR.Input.Mouse.LeftButtonUp();
                 _pressedButtons &= ~Buttons.Left;
                 _mouseDownPosition = null;
                 _mouseReleaseFrame = Time.frameCount + 1;
             }
+        }
+        private bool BeginDirectUI()
+        {
+            var system = EventSystem.current;
+            if (system == null || !_lastPointerHit.HasValue) return false;
+            var uv = _lastPointerHit.Value.textureCoord;
+            var data = new PointerEventData(system) { position = new Vector2(uv.x * Screen.width, uv.y * Screen.height),
+                button = PointerEventData.InputButton.Left, pointerId = -1000 - _owner.GetInstanceID() };
+            var results = new List<RaycastResult>();
+            system.RaycastAll(data, results);
+            foreach (var result in results.OrderByDescending(r => r.sortingOrder).ThenByDescending(r => r.depth))
+            {
+                // A screen-space UI raycast is required. Physics raycasters must
+                // never turn a semantic UI selection into a world-object click.
+                if (!(result.module is GraphicRaycaster) || result.gameObject == null) continue;
+                var root = FrameKoiUiPolicy.FocusRoot as Transform;
+                if (root != null && !result.gameObject.transform.IsChildOf(root)) continue;
+                var target = ExecuteEvents.ExecuteHierarchy(result.gameObject, data, ExecuteEvents.pointerDownHandler) ??
+                    ExecuteEvents.GetEventHandler<IPointerClickHandler>(result.gameObject);
+                if (target == null) continue;
+                _directPress = data; _directTarget = target;
+                system.SetSelectedGameObject(target);
+                return true;
+            }
+            return false;
+        }
+        private void EndDirectUI(bool click)
+        {
+            var data = _directPress;
+            var target = _directTarget;
+            _directPress = null; _directTarget = null;
+            if (target == null || data == null) return;
+            ExecuteEvents.Execute(target, data, ExecuteEvents.pointerUpHandler);
+            if (!click || !_lastPointerHit.HasValue || EventSystem.current == null) return;
+            var uv = _lastPointerHit.Value.textureCoord;
+            data.position = new Vector2(uv.x * Screen.width, uv.y * Screen.height);
+            var results = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(data, results);
+            foreach (var result in results)
+                if (result.module is GraphicRaycaster &&
+                    ExecuteEvents.GetEventHandler<IPointerClickHandler>(result.gameObject) == target)
+                { ExecuteEvents.Execute(target, data, ExecuteEvents.pointerClickHandler); break; }
         }
         internal void OnGrip(bool press)
         {
@@ -351,6 +402,14 @@ namespace KK_VR.Controls
 
         private bool UpdateNativePointer()
         {
+            if (!FrameKoiUiPolicy.Interactive)
+            {
+                ReleasePointerButtons();
+                _quad = null;
+                _lastPointerHit = null;
+                LaserVisible = false;
+                return false;
+            }
             // Use the calibrated tracking frame, not animated item orientation
             // or a legacy render-model tip. Early menus work before hands exist.
             Laser.transform.localPosition = Vector3.zero;
@@ -442,7 +501,8 @@ namespace KK_VR.Controls
             _triggerHolds = 0;
             if ((_pressedButtons & Buttons.Left) != 0)
             {
-                VR.Input.Mouse.LeftButtonUp();
+                if (_directPress != null) EndDirectUI(false);
+                else VR.Input.Mouse.LeftButtonUp();
                 _mouseReleaseFrame = Time.frameCount + 1;
             }
             if ((_pressedButtons & Buttons.Right) != 0)

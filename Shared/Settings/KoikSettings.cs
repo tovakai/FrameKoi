@@ -76,6 +76,13 @@ namespace KK_VR.Settings
             Auto
         }
 
+        public enum FrameKoiTurningMode
+        {
+            Smooth,
+            Snap,
+            Off
+        }
+
         public enum PovAttachmentBones
         {
             Eyes,
@@ -112,6 +119,8 @@ namespace KK_VR.Settings
 
         #region Roaming
         public static ConfigEntry<bool> ContinuousRotation { get; private set; }
+        public static ConfigEntry<FrameKoiTurningMode> FrameKoiTurnMode { get; private set; }
+        public static ConfigEntry<float> FrameKoiSmoothTurnSpeed { get; private set; }
 
         #endregion
 
@@ -147,6 +156,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<int> GripMoveStabilizationAmount { get; private set; }
         public static ConfigEntry<bool> GripMoveEnableRotation { get; private set; }
         public static ConfigEntry<bool> GripMoveLocomotion { get; private set; }
+        public static ConfigEntry<bool> FrameKoiAllowWorldGrip { get; private set; }
 
         #endregion
 
@@ -335,7 +345,14 @@ namespace KK_VR.Settings
 
 
             ContinuousRotation = config.Bind(SectionRoaming, "Continuous rotation", true,
-                "Rotate camera continuously instead of a snap turn. Influenced by the setting 'Rotation angle'.");
+                "Legacy KKS_VR continuous rotation setting. FrameKoi Turning mode takes precedence.");
+
+            FrameKoiTurnMode = config.Bind(SectionRoaming, "FrameKoi turning mode", FrameKoiTurningMode.Smooth,
+                "Smooth (default), Snap, or Off for directional turning while roaming.");
+
+            FrameKoiSmoothTurnSpeed = config.Bind(SectionRoaming, "FrameKoi smooth turn speed", 90f,
+                new ConfigDescription("Smooth-turn speed in degrees per second.",
+                    new AcceptableValueRange<float>(15f, 360f)));
 
 
             #endregion
@@ -526,6 +543,9 @@ namespace KK_VR.Settings
                     new ConfigurationManagerAttributes { Order = 7 }
                     ));
 
+
+            FrameKoiAllowWorldGrip = config.Bind(SectionGripMove, "FrameKoi allow world grip", false,
+                "Allow the legacy GripMove world-drag fallback. Disabled by default so physical grips are reserved for hand interactions.");
 
             GripMoveStabilize = config.Bind(SectionGripMove, "Stabilization", GripMoveStabilization.OnlyRotation,
                 new ConfigDescription(

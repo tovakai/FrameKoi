@@ -57,6 +57,7 @@ namespace KK_VR.Interpreters
             _mirrorManager = new KK_VR.Fixes.Mirror.Manager();
             VR.Camera.gameObject.AddComponent<EffectorVFX>();
             VR.Camera.gameObject.AddComponent<SmoothMover>();
+            VR.Camera.gameObject.AddComponent<FirstPersonBodyVisibility>();
             SceneManager.sceneLoaded += OnSceneLoaded;
 #if KK
             _party = Paths.ProcessName.Equals($"Koikatsu Party");

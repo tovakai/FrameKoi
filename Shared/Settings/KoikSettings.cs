@@ -84,6 +84,7 @@ namespace KK_VR.Settings
         }
 
         public enum HandCalibrationMode { AutoFrame, AllControllers, Disabled }
+        public enum PlayerBodyMode { FullBody, HideArms, HideBody }
 
         public enum PovAttachmentBones
         {
@@ -117,6 +118,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<HandCalibrationMode> FrameKoiHandCalibration { get; private set; }
         public static ConfigEntry<Vector3> FrameKoiLeftHandRotation { get; private set; }
         public static ConfigEntry<Vector3> FrameKoiRightHandRotation { get; private set; }
+        public static ConfigEntry<PlayerBodyMode> FrameKoiPlayerBody { get; private set; }
         public static ConfigEntry<bool> StaticDirectionalLight { get; private set; }
 
         #endregion
@@ -345,6 +347,8 @@ namespace KK_VR.Settings
                 "Controller-local XYZ degrees, applied to the complete hand anchor including interaction colliders. Independent of the right hand; no automatic mirroring. Initial Frame correction requires headset calibration.");
             FrameKoiRightHandRotation = config.Bind(SectionGeneral, "FrameKoi right hand rotation", new Vector3(-90f, 0f, 0f),
                 "Controller-local XYZ degrees for the right hand. Try each axis independently; restore zero on the other axes while calibrating.");
+            FrameKoiPlayerBody = config.Bind(SectionGeneral, "FrameKoi first person body", PlayerBodyMode.HideBody,
+                "Roaming protagonist in the headset only. FullBody preserves the original body. HideArms hides separate arm renderers; mixed body/arm meshes safely fall back to HideBody. Rendering only: rig, animation, colliders and VR hands remain intact. Enabled with native SteamVR input.");
 
 
             EnableBoop = config.Bind(SectionGeneral, "Enable Boop", true,

@@ -26,3 +26,20 @@ normal and wrist roll rather than only finger direction. Then tune smaller
 increments, both hands extended forward and sideways. Check finger, normal
 hand and toy modes against a target and verify the contact location. If the
 runtime reports another type, select AllControllers deliberately for this test.
+
+## First-person body
+
+FrameKoi first person body (0. General) defaults to HideBody, the conservative
+fallback for stock combined skinned meshes. FullBody disables this feature.
+HideArms hides separate arm renderers when recognizable; if a skin binds both
+arm and torso bones, or no separate arms can be identified, it logs once and
+hides the original body instead. It never edits shared meshes or bone scales.
+
+This feature applies to the roaming protagonist only, with native input
+enabled. Existing face/head concealment and event-scene POV remain unchanged.
+Renderer enabled states are captured at headset PreCull and restored at
+PostRender, with recovery on LateUpdate/disable. Spectator cameras see the
+original states, including nested camera rendering. Initially disabled
+renderers remain disabled. Character/scene/config changes refresh selection.
+The tracked hand models are outside the protagonist hierarchy and are never
+included. No rig, collider, animator or character GameObject is disabled.

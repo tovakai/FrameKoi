@@ -104,6 +104,8 @@ settings. The SteamVR physical binding JSON does not need to be redesigned.
   secondary-click path, only with scoped compatibility enabled.
 - Text advances through ADV RequestNextLine. Existing scroll-to-advance remains
   a compatibility fallback on versions without that method.
+- B backs out through the original conversation category/end controls where
+  permitted. It never dismisses scripted ADV or mandatory choices.
 - uGUI selection/confirmation/navigation use Unity event APIs. Original IMGUI
   panels may require desktop cursor/click compatibility. Bumper mouse clicks
   are disabled by default: explicitly enable FrameKoi legacy UI mouse clicks

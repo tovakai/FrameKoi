@@ -64,7 +64,7 @@ namespace KK_VR.Controls
         internal static bool Submit(Transform root)
         {
             if (root == null && KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene)
-                return AdvanceDialogue() || KoikGameInterp.SceneInput.ConfirmUI();
+                return KoikGameInterp.SceneInput.ConfirmUI();
             if (KoikMenuHandler.SubmitSelectedUI(root)) return true;
             return false;
         }
@@ -102,7 +102,8 @@ namespace KK_VR.Controls
         {
             var system = EventSystem.current;
             var selected = system?.currentSelectedGameObject;
-            if (root == null) return false;
+            if (root == null)
+                return KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene && KoikGameInterp.SceneInput.CancelUI();
             var config = root.GetComponentsInParent<MonoBehaviour>().FirstOrDefault(b => b.GetType().Name == "ConfigScene");
             if (config != null && Invoke(config, "Unload")) return true;
             if (selected != null && selected.transform.IsChildOf(root) &&

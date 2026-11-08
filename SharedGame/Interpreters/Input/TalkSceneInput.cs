@@ -77,6 +77,28 @@ namespace KK_VR.Interpreters
             return true;
         }
 
+        internal override bool CancelUI()
+        {
+            // Scripted ADV and mandatory choices must never be dismissed by Back.
+            if (_interpreter.IsStart || talkScene == null || advScene != null && IsADV) return false;
+            var state = GetState();
+            if (state != State.None)
+            {
+#if KKS
+                // The old Topic "back" path randomizes a topic instead of cancelling.
+                if (state == State.Topic) return false;
+#endif
+                LeaveState(false);
+                return true;
+            }
+            var field = talkScene.GetType().GetField("buttonEnd", System.Reflection.BindingFlags.Instance |
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            var button = field?.GetValue(talkScene) as Button;
+            if (button == null || !button.IsActive() || !button.IsInteractable()) return false;
+            button.onClick.Invoke();
+            return true;
+        }
+
         internal override bool NavigateUI(int x, int y)
         {
             if (_interpreter.IsStart) return true;

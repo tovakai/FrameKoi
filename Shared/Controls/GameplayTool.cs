@@ -20,6 +20,8 @@ namespace KK_VR.Controls
         private TrackpadDirection _lastDirection;
 
         private GripMove _gripMove;
+        // Keep release routing paired with the mode selected on physical press.
+        private bool _handOnlyGripHeld;
 
         internal bool IsGrip => _gripMove != null;
 
@@ -29,6 +31,7 @@ namespace KK_VR.Controls
         }
         protected override void OnDisable()
         {
+            _handOnlyGripHeld = false;
             DestroyGripMove();
             base.OnDisable();
         }
@@ -131,7 +134,8 @@ namespace KK_VR.Controls
 
             if (Controller.GetPressDown(EVRButtonId.k_EButton_Grip))
             {
-                if (!KoikSettings.FrameKoiAllowWorldGrip.Value)
+                _handOnlyGripHeld = !KoikSettings.FrameKoiAllowWorldGrip.Value;
+                if (_handOnlyGripHeld)
                 {
                     // FrameKoi hand-first policy: always deliver the grip to the scene,
                     // even near the floating menu. Never start world dragging.
@@ -155,9 +159,9 @@ namespace KK_VR.Controls
             }
             else if (Controller.GetPressUp(EVRButtonId.k_EButton_Grip))
             {
-                if (!KoikSettings.FrameKoiAllowWorldGrip.Value)
+                if (_handOnlyGripHeld)
                 {
-                    // Always pair down/up, regardless of menu proximity.
+                    // Always pair down/up, regardless of menu proximity or settings changes.
                     KoikGameInterp.SceneInput.OnButtonUp(_index, EVRButtonId.k_EButton_Grip, direction);
                 }
                 else if (menuInteractable)
@@ -172,6 +176,7 @@ namespace KK_VR.Controls
                         DestroyGripMove();
                     }
                 }
+                _handOnlyGripHeld = false;
             }
 
             if (Controller.GetPressDown(EVRButtonId.k_EButton_SteamVR_Touchpad))

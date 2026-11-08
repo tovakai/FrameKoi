@@ -1,0 +1,25 @@
+name: FrameKoi build smoke test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout with VRGIN submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Build Koikatsu main-game plugin
+        run: dotnet build KK_VR/KK_Game.csproj --configuration Release --verbosity minimal
+      - name: Build Sunshine main-game plugin
+        run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal

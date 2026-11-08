@@ -73,6 +73,15 @@ namespace KK_VR
             }
 
             new Harmony(GUID).PatchAll(typeof(VRPlugin).Assembly);
+            // Opt-in native SteamVR Input. Must register the manifest before VRGIN
+            // starts its normal controller update loop.
+            if (KoikSettings.FrameKoiNativeInputEnabled.Value)
+            {
+                var manifestPath = KoikSettings.FrameKoiActionManifestPath.Value;
+                if (String.IsNullOrEmpty(manifestPath))
+                    manifestPath = System.IO.Path.Combine(Paths.PluginPath, "FrameKoi", "SteamVR", "actions.json");
+                Controls.FrameKoiNativeInput.Initialize(manifestPath);
+            }
             VRManager.Create<Interpreters.KoikGameInterp>(new KoikContext(settings));
 
             VR.Manager.SetMode<GameStandingMode>();

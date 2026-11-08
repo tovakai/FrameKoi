@@ -39,7 +39,8 @@ The adapter reads the game's current interpreter and additive scene stack;
 loading and SteamVR input-focus loss suspend routing. It does not use desktop
 window focus, which is unreliable for Proton VR.
 
-Every press captures its receiver/release callback. Context changes release
+Every press captures its receiver/release callback. Context changes first cancel
+pointer clicks and delayed legacy scene taps, then release
 held actions into their original scene/UI, neutralize movement and crouch,
 and quarantine every button already held until a physical release. Reconnect
 and focus recovery seed current button states without generating presses.

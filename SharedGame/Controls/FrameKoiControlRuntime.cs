@@ -166,6 +166,8 @@ namespace KK_VR.Controls
         }
         public void Disconnect(int hand)
         {
+            _pointers[hand]?.ReleaseInput();
+            (_router?.Context?.Owner as SceneInput)?.CancelPendingActions(hand);
             _router?.Disconnect(hand);
             _reconnecting[hand] = true;
             _axisBlocked[hand] = true;
@@ -176,6 +178,7 @@ namespace KK_VR.Controls
         public void Neutralize(FrameKoiContext previous)
         {
             var input = previous?.Owner as SceneInput;
+            input?.CancelPendingActions(0); input?.CancelPendingActions(1);
             input?.SetFrameKoiLeftStick(Vector2.zero);
             input?.SetFrameKoiRightStick(0f);
             input?.SetSceneMovement(Vector2.zero);

@@ -51,6 +51,16 @@ static class Program
         Check(bindings.Resolve(FrameKoiProfile.Roaming,"y")==FrameKoiAction.Recenter,"config remap");
         Check(bindings.Resolve(FrameKoiProfile.Scene,"y")==FrameKoiAction.Secondary,"remap profile isolation");
 
+        var cancellationSink=new Sink();
+        var cancellationRouter=new FrameKoiContextRouter(cancellationSink,FrameKoiBindings.Defaults());
+        cancellationRouter.Change(Context(FrameKoiProfile.Scene,new object()));
+        cancellationRouter.Sample(1,"right_bumper",true);
+        cancellationSink.Events.Clear();
+        cancellationRouter.Change(Context(FrameKoiProfile.DialogueMenu,new object()));
+        Check(string.Join(",",cancellationSink.Events)=="neutral,up:1:SelectUI","context cancels pointer/timed actions before paired releases");
+        cancellationRouter.Sample(1,"right_bumper",false);cancellationRouter.Sample(1,"right_bumper",true);
+        cancellationSink.Events.Clear();cancellationRouter.Reset();
+        Check(string.Join(",",cancellationSink.Events)=="neutral,up:1:SelectUI","focus/poll reset cancels before releasing UI button");
         var sink=new Sink();var router=new FrameKoiContextRouter(sink,FrameKoiBindings.Defaults());
         var scene=new object();
         router.Change(Context(FrameKoiProfile.Roaming,scene));

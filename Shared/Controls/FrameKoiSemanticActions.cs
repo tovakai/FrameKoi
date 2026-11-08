@@ -110,10 +110,10 @@ namespace KK_VR.Controls
         {
             if (next.Same(Context)) return;
             foreach (var key in _physical) _quarantine.Add(key);
-            ReleaseAll();
             var previous = Context;
             Context = next;
             _sink.Neutralize(previous);
+            ReleaseAll();
         }
         internal void Sample(int hand, string button, bool down)
         {
@@ -163,8 +163,8 @@ namespace KK_VR.Controls
         internal void Reset()
         {
             foreach (var key in _physical) _quarantine.Add(key);
-            ReleaseAll();
             _sink.Neutralize(Context);
+            ReleaseAll();
         }
     }
 

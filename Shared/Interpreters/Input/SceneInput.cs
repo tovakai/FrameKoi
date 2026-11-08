@@ -105,6 +105,9 @@ namespace KK_VR.Interpreters
         {
         }
 
+        // Cancel delayed taps before paired releases during a context/focus change.
+        internal void CancelPendingActions(int index) => _waitList.RemoveAll(wait => wait.index == index);
+
         internal virtual void ReleaseController(int index)
         {
         }

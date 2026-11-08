@@ -186,7 +186,10 @@ namespace KK_VR.Interpreters
             else
             {
                 _pressedButtons[index, 0] = false;
-                ResetState();
+                // Releasing the trigger stops legacy walking only. ResetState()
+                // would also reset stick snap rearm while the stick is held,
+                // causing accidental repeated snaps on trigger release.
+                StopWalking();
             }
             return false;
         }
@@ -383,6 +386,14 @@ namespace KK_VR.Interpreters
             PressButton(Pressed.LeftMouse);
             _walking = true;
             HideMaleHead.ForceHideHead = true;
+        }
+
+        private void StopWalking()
+        {
+            ReleaseButton(Pressed.LeftMouse);
+            ReleaseButton(Pressed.Shift);
+            _walking = false;
+            HideMaleHead.ForceHideHead = false;
         }
 
         private void ToggleDash()

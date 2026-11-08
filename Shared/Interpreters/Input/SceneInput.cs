@@ -105,6 +105,11 @@ namespace KK_VR.Interpreters
         {
         }
 
+        // Native controller actions that are independent of legacy trackpad directions.
+        internal virtual void FrameKoiSprintClick()
+        {
+        }
+
         internal virtual void HandleInput()
         {
             foreach (var wait in _waitList)

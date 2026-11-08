@@ -46,5 +46,16 @@ jobs:
       - name: Build Sunshine main-game plugin
         run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal
       - name: Build Koikatsu main-game plugin
-        continue-on-error: true
         run: dotnet build KK_VR/KK_Game.csproj --configuration Release --verbosity minimal
+      - name: Upload compiled FrameKoi test binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrameKoi-test-binaries
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            bin/KK/KoikatuVR.dll
+            bin/KKS/KKS_MainGameVR.dll
+            SteamVR/actions.json
+            SteamVR/bindings_frame_controller.json
+            docs/HEADSET-TEST.md

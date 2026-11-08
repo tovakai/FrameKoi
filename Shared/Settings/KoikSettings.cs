@@ -130,6 +130,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<string> FrameKoiSceneBindings { get; private set; }
         public static ConfigEntry<string> FrameKoiMenuBindings { get; private set; }
         public static ConfigEntry<bool> FrameKoiCompatibilityInput { get; private set; }
+        public static ConfigEntry<bool> FrameKoiLegacyUiClicks { get; private set; }
         public static ConfigEntry<bool> StaticDirectionalLight { get; private set; }
 
         #endregion
@@ -383,7 +384,9 @@ namespace KK_VR.Settings
             FrameKoiSceneBindings = config.Bind(SectionGeneral, "FrameKoi scene binding overrides", "", "Same override format for special scenes. Bumpers default to SelectUI.");
             FrameKoiMenuBindings = config.Bind(SectionGeneral, "FrameKoi menu binding overrides", "", "Same override format for dialogue and menus.");
             FrameKoiCompatibilityInput = config.Bind(SectionGeneral, "FrameKoi scoped compatibility input", true,
-                "Allow legacy IMGUI UI clicks and targeted gate interactions when no direct game/UI API is available. Never permits unrestricted A-button world clicks.");
+                "Allow target-validated gate interaction and dialogue scroll fallback when a direct API is unavailable. Never permits unrestricted A-button world clicks.");
+            FrameKoiLegacyUiClicks = config.Bind(SectionGeneral, "FrameKoi legacy UI mouse clicks", false,
+                "Opt-in compatibility for IMGUI/mod panels without uGUI targets. Allows bumper mouse clicks inside a visible interactive panel. Leave disabled for target-only selection.");
 
 
             EnableBoop = config.Bind(SectionGeneral, "Enable Boop", true,

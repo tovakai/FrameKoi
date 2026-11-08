@@ -63,7 +63,7 @@ namespace KK_VR.Controls
         }
         internal static bool Submit(Transform root)
         {
-            if (KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene)
+            if (root == null && KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene)
                 return AdvanceDialogue() || KoikGameInterp.SceneInput.ConfirmUI();
             if (KoikMenuHandler.SubmitSelectedUI(root)) return true;
             return false;
@@ -87,7 +87,7 @@ namespace KK_VR.Controls
         }
         internal static void Navigate(Transform root, int x, int y)
         {
-            if (KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene &&
+            if (root == null && KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.TalkScene &&
                 KoikGameInterp.SceneInput.NavigateUI(x, y)) return;
             var system = EventSystem.current;
             var current = system?.currentSelectedGameObject?.GetComponent<Selectable>();

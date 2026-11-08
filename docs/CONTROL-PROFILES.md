@@ -85,6 +85,7 @@ All new options are in 0. General:
 | FrameKoi fullscreen HUD width | 90 degrees |
 | FrameKoi roaming/scene/menu binding overrides | Empty, use defaults |
 | FrameKoi scoped compatibility input | true |
+| FrameKoi legacy UI mouse clicks | false (explicit IMGUI opt-in) |
 
 Override format: semicolon-separated physical=semantic pairs, for example
 y=Crouch;dpad_left=None. Action names are in FrameKoiSemanticActions.cs.
@@ -104,8 +105,10 @@ settings. The SteamVR physical binding JSON does not need to be redesigned.
 - Text advances through ADV RequestNextLine. Existing scroll-to-advance remains
   a compatibility fallback on versions without that method.
 - uGUI selection/confirmation/navigation use Unity event APIs. Original IMGUI
-  panels may still require desktop cursor/click compatibility. Disabling scoped
-  compatibility disables those fallback clicks; it does not invent world clicks.
+  panels may require desktop cursor/click compatibility. Bumper mouse clicks
+  are disabled by default: explicitly enable FrameKoi legacy UI mouse clicks
+  for those panels. With defaults, no uGUI target means no selection action.
+  Disabling scoped compatibility disables these fallback clicks as well.
 - X invokes an exposed original configuration/pause button when available.
   Otherwise it owns a reversible Unity timescale pause. It never unpauses a
   pause owned by an unrelated blocking modal. X/B can close known configuration/

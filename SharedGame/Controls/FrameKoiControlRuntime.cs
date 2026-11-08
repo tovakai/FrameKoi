@@ -146,7 +146,7 @@ namespace KK_VR.Controls
             {
                 input?.SetFrameKoiLeftStick(_router.Context.Profile == FrameKoiProfile.Roaming ? axis : Vector2.zero);
                 if (_router.Context.Profile == FrameKoiProfile.Scene) input?.SetSceneMovement(axis);
-                if (_router.Context.Profile == FrameKoiProfile.DialogueMenu && Time.unscaledTime >= _uiRepeatAt && axis.sqrMagnitude > 0.3f)
+                if (_router.Context.Profile == FrameKoiProfile.DialogueMenu && (!_router.Context.Blocking || _modalRoot != null) && Time.unscaledTime >= _uiRepeatAt && axis.sqrMagnitude > 0.3f)
                 {
                     FrameKoiGameActions.Navigate(_modalRoot, Mathf.Abs(axis.x) > Mathf.Abs(axis.y) ? (int)Mathf.Sign(axis.x) : 0,
                         Mathf.Abs(axis.y) >= Mathf.Abs(axis.x) ? (int)Mathf.Sign(axis.y) : 0);
@@ -210,7 +210,7 @@ namespace KK_VR.Controls
                     break;
                 case FrameKoiAction.Interact: return FrameKoiGameActions.Interact();
                 case FrameKoiAction.Confirm:
-                    if (context.Menu != "FrameKoiPause") FrameKoiGameActions.Submit(_modalRoot);
+                    if (context.Menu != "FrameKoiPause" && (!context.Blocking || _modalRoot != null)) FrameKoiGameActions.Submit(_modalRoot);
                     break;
                 case FrameKoiAction.Primary: return Button(input, hand, EVRButtonId.k_EButton_SteamVR_Trigger);
                 case FrameKoiAction.Secondary: return Button(input, hand, EVRButtonId.k_EButton_SteamVR_Touchpad);
@@ -243,8 +243,10 @@ namespace KK_VR.Controls
                     var direction = action == FrameKoiAction.Up ? TrackpadDirection.Up : action == FrameKoiAction.Down ? TrackpadDirection.Down :
                         action == FrameKoiAction.Left ? TrackpadDirection.Left : TrackpadDirection.Right;
                     if (context.Profile == FrameKoiProfile.DialogueMenu)
-                        FrameKoiGameActions.Navigate(_modalRoot, direction == TrackpadDirection.Left ? -1 : direction == TrackpadDirection.Right ? 1 : 0,
+                    {
+                        if (!context.Blocking || _modalRoot != null) FrameKoiGameActions.Navigate(_modalRoot, direction == TrackpadDirection.Left ? -1 : direction == TrackpadDirection.Right ? 1 : 0,
                             direction == TrackpadDirection.Up ? 1 : direction == TrackpadDirection.Down ? -1 : 0);
+                    }
                     else
                     {
                         input?.OnDirectionDown(hand, direction);

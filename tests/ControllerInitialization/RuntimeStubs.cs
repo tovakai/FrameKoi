@@ -186,6 +186,7 @@ namespace KK_VR.Settings
         public static ValueSetting<float> FrameKoiPointerRange = new ValueSetting<float>(5f);
         public static ValueSetting<Vector3> FrameKoiPointerRotation = new ValueSetting<Vector3>(Vector3.zero);
         public static Setting FrameKoiCompatibilityInput = new Setting { Value=true };
+        public static Setting FrameKoiLegacyUiClicks = new Setting { Value=true };
         public static ValueSetting<float> FrameKoiDialogueDistance=new ValueSetting<float>(1.75f);
         public static ValueSetting<float> FrameKoiDialogueSideAngle=new ValueSetting<float>(25f);
         public static ValueSetting<float> FrameKoiDialogueVertical=new ValueSetting<float>(-0.2f);

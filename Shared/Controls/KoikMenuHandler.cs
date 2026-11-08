@@ -197,7 +197,7 @@ namespace KK_VR.Controls
                 if (_triggerHolds++ != 0) return;
                 if (!FrameKoiNativeInput.Ready || !BeginDirectUI())
                 {
-                    if (FrameKoiNativeInput.Ready && !KoikSettings.FrameKoiCompatibilityInput.Value)
+                    if (FrameKoiNativeInput.Ready && (!KoikSettings.FrameKoiCompatibilityInput.Value || !KoikSettings.FrameKoiLegacyUiClicks.Value))
                     { _triggerHolds = 0; if (_mouseOwner == this) _mouseOwner = null; return; }
                     VR.Input.Mouse.LeftButtonDown();
                 }

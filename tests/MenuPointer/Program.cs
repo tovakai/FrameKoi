@@ -144,6 +144,9 @@ static class Program
         pointer.CheckMenu();pointer.OnTrigger(true);pointer.OnTrigger(false);
         Check(!VR.Input.Mouse.Left&&ExecuteEvents.Clicks==1,"physics/world raycasts cannot become UI clicks");
         KoikSettings.FrameKoiCompatibilityInput.Value=true;
+        KoikSettings.FrameKoiLegacyUiClicks.Value=false;
+        pointer.CheckMenu();pointer.OnTrigger(true);pointer.OnTrigger(false);
+        Check(!VR.Input.Mouse.Left&&ExecuteEvents.Clicks==1,"missing UI target does nothing with default mouse compatibility disabled");
         FrameKoiNativeInput.Ready=false;
         KoikSettings.FrameKoiPointerRotation.Value=Vector3.zero;
         far.GetComponent<Collider>().distance=0.1f;

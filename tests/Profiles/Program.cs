@@ -79,7 +79,7 @@ static class Program
         count=sink.Events.Count;router.Sample(1,"x",true);Check(sink.Events.Count==count,"resume does not reuse held pause");
         router.Sample(1,"x",false);router.Sample(1,"x",true);Check(sink.Events.Contains("down:1:Pause"),"new pause after focus regain");
         var next=new object();sink.OnBegin=()=>{sink.OnBegin=null;router.Change(Context(FrameKoiProfile.DialogueMenu,next));};
-        router.Sample(1,"x",false);router.Sample(1,"a",true);
+        router.Sample(1,"x",false);router.Sample(1,"a",false);router.Sample(1,"a",true);
         Check(sink.Events[sink.Events.Count-1]=="up:1:Primary","synchronous scene switch releases newly returned activation");
         router.Reset();
         TestPresentation();

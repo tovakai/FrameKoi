@@ -22,6 +22,7 @@ namespace KK_VR.Controls
         private GripMove _gripMove;
         // Keep release routing paired with the mode selected on physical press.
         private bool _handOnlyGripHeld;
+        private float _nextAxisDiagnosticAt;
 
         internal bool IsGrip => _gripMove != null;
 
@@ -61,6 +62,13 @@ namespace KK_VR.Controls
                 {
                     sceneInput.SetFrameKoiLeftStick(Controller.GetAxis());
                 }
+            }
+            if (KoikSettings.FrameKoiAxisDiagnostics.Value &&
+                Time.unscaledTime >= _nextAxisDiagnosticAt)
+            {
+                _nextAxisDiagnosticAt = Time.unscaledTime + 1f;
+                var axis = Controller.GetAxis();
+                VRLog.Info($"FrameKoi controller {_index} analog axis x={axis.x:F2}, y={axis.y:F2}");
             }
             _gripMove?.HandleGrabbing();
         }

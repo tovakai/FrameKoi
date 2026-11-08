@@ -124,7 +124,11 @@ namespace KK_VR.Controls
             }
             else
             {
-                if (_nativeHeld.Count != 0) ReleaseInput();
+                if (_nativeHeld.Count != 0)
+                {
+                    ReleaseInput();
+                    _inputScene = sceneInput;
+                }
                 if (HandHolder.GetHands.Count < 2) return;
                 HandleInput();
                 if (sceneInput != null)
@@ -314,8 +318,13 @@ namespace KK_VR.Controls
             _menu ??= new KoikMenuTool(Owner);
             _menuHandler ??= new KoikMenuHandler(Owner);
             _initialized = true;
+#if KKS
+            var deviceIndex = Tracking.GetDeviceIndex();
+#else
+            var deviceIndex = Tracking.index;
+#endif
             FrameKoiInputDiagnostics.Log("tool-init-" + GetInstanceID(),
-                $"GameplayTool initialized controller {_index}, device={Tracking.index}, enabled={enabled}, native={FrameKoiNativeInput.Ready}; render model not required");
+                $"GameplayTool initialized controller {_index}, device={deviceIndex}, enabled={enabled}, native={FrameKoiNativeInput.Ready}; render model not required");
             return true;
         }
         internal void DestroyGripMove()

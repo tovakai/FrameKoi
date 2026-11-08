@@ -25,7 +25,7 @@ namespace KK_VR.Controls
         private static ulong _setHandle;
         private static InputFunctions _api;
         private static readonly ActiveActionSet[] ActiveSets = new ActiveActionSet[1];
-        private static readonly Dictionary<string, string> Observations = new Dictionary<string, string>();
+        private static readonly Dictionary<string, int> Observations = new Dictionary<string, int>();
         private static float _nextPollDiagnostic;
 
         internal static bool Ready { get { return _ready; } }
@@ -239,8 +239,9 @@ namespace KK_VR.Controls
                 if (!Poll() || !ActionHandle(name, out handle)) return false;
                 var state = new DigitalState();
                 var error = _api.GetDigital(handle, ref state, (uint)Marshal.SizeOf(typeof(DigitalState)), 0);
-                Observe(name, $"error={error}, active={state.active}, pressed={state.state}",
-                    $"digital {name}: error={error}, active={state.active}, pressed={state.state}, changed={state.changed}, origin={state.origin}");
+                if (Observe(name, error, state.active, state.state))
+                    FrameKoiInputDiagnostics.Log("action-" + name,
+                        $"digital {name}: error={error}, active={state.active}, pressed={state.state}, changed={state.changed}, origin={state.origin}", 12);
                 return error == 0 && state.active && state.state;
             }
             catch (Exception ex)
@@ -259,8 +260,9 @@ namespace KK_VR.Controls
                 if (!Poll() || !ActionHandle(name, out handle)) return Vector2.zero;
                 var state = new AnalogState();
                 var error = _api.GetAnalog(handle, ref state, (uint)Marshal.SizeOf(typeof(AnalogState)), 0);
-                Observe(name, $"error={error}, active={state.active}, moving={Math.Abs(state.x) > 0.1f || Math.Abs(state.y) > 0.1f}",
-                    $"analog {name}: error={error}, active={state.active}, x={state.x:F2}, y={state.y:F2}, origin={state.origin}");
+                if (Observe(name, error, state.active, Math.Abs(state.x) > 0.1f || Math.Abs(state.y) > 0.1f))
+                    FrameKoiInputDiagnostics.Log("action-" + name,
+                        $"analog {name}: error={error}, active={state.active}, x={state.x:F2}, y={state.y:F2}, origin={state.origin}", 12);
                 return error == 0 && state.active ? new Vector2(state.x, state.y) : Vector2.zero;
             }
             catch (Exception ex)
@@ -283,14 +285,16 @@ namespace KK_VR.Controls
             ActiveSets[0] = new ActiveActionSet();
         }
 
-        private static void Observe(string name, string state, string message)
+        private static bool Observe(string name, int error, bool active, bool pressedOrMoving)
         {
-            string previous;
+            var state = (error << 2) | (active ? 1 : 0) | (pressedOrMoving ? 2 : 0);
+            int previous;
             if (!Observations.TryGetValue(name, out previous) || previous != state)
             {
                 Observations[name] = state;
-                FrameKoiInputDiagnostics.Log("action-" + name, message, 12);
+                return true;
             }
+            return false;
         }
     }
 

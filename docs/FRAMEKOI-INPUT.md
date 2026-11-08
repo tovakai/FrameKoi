@@ -30,18 +30,27 @@ FrameKoi is based on [IllusionMods/KKS_VR](https://github.com/IllusionMods/KKS_V
 - Releasing a trigger no longer resets the analog snap-turn latch: it just releases the old walking input.
 - **Known limitation:** When the stick's analog axis is redirected to a menu, the menu retains legacy direction callbacks. The SteamVR binding still needs validation on actual hardware.
 
+## Native Steam Frame action mode (experimental)
+
+- `SteamVR/actions.json` declares 18 digital actions + 2 analog stick actions. `SteamVR/bindings_frame_controller.json` assigns each to a documented Valve Steam Frame OpenVR path.
+- `Shared/Controls/FrameKoiNativeInput.cs` bridges IVRInput_011 separately from VRGIN's outdated managed OpenVR interface.
+- KK/KKS plugin initialization can opt into native mode via `1. Roaming / FrameKoi native SteamVR input (experimental)` (default **OFF**) and an optional manifest path. When missing, it defaults to the installed assembly's `SteamVR/actions.json` sibling file.
+- `GameplayTool` routes native grip/trigger/button actions into existing scene handlers, with independent analog sticks, dpad scene directions, shoulders as secondary click, stick-click sprint/upright, A/B/X for click/back/alternate, and Y/View/Menu for the menu toggle. Grip world-dragging is never started in native mode.
+- `release.ps1` now bundles the SteamVR action manifest and binding file alongside the main-game DLLs for both original Koikatsu and Sunshine.
+- **Uncompiled and headset-untested.** The native interop ABI, manifest registration timing, bindings, and physical input state still need validation. SteamVR's default legacy controller-emulation mode may not expose every button.
+- Complete physical mapping: [`SteamVR/README.md`](../SteamVR/README.md).
+
 ## Not implemented yet
 
-- Native SteamVR action-manifest bindings. The **right analog stick is now polled independently** through the existing per-controller `GetAxis()` method. Whether SteamVR maps the Frame's intended stick to that axis must be confirmed on the actual headset.
-- Production-ready left-stick locomotion. The experimental origin translation above is not a collision-safe alternative to the upstream trigger-held walking. Need a verified game movement API or a collision-respecting movement adapter before making it default.
-- Direct A/B/X/Y, shoulder, D-pad, and stick-click bindings. We need to map actual OpenVR / SteamVR input action paths and test with the Steam Frame.
-- Context-specific UI fallback for menu repositioning after reserving the grips for hands.
-- Runtime, compiler, or physical Steam Frame validation. **These edits are committed but untested in-game.**
+- Validated binary release and Steam Frame hardware input test.
+- Safe, collision-respecting left-stick locomotion. Experimental direct origin movement is off by default.
+- Scene-specific UX refinements for the new face buttons and shoulders, and a replacement for moving the floating menu with a grip.
+- Reliable SteamVR native fallback while changing scenes or reconnecting controllers, verified under Proton.
 
 ## Next implementation slices
 
-1. Isolate controller sampling behind a `FrameKoiInput` layer instead of the current small direct analog-right-stick bridge, preserving the existing scene handlers.
-2. Add SteamVR action manifest/binding support, handling disconnected/reconnected controllers and press/release state.
-3. Replace experimental direct-origin locomotion with collision-aware game movement; retain the independent analog axes, deadzones, and turning policies.
-4. Map menu, click, teleports, and scene-specific actions to the spare buttons, with a configuration panel and diagnostics.
+1. Build and inspect compiler errors against all game projects and runtime dependencies.
+2. Validate all 20 Steam Frame actions on real hardware and Proton; audit press/release and disconnection behavior.
+3. Replace experimental direct-origin locomotion with collision-aware game movement.
+4. Refine contextual menu handling and add in-game help/diagnostics.
 5. Test grabbing independently with both hands, transitions between scenes, and menu proximity.

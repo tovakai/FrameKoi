@@ -4,6 +4,7 @@ using VRGIN.Core;
 using KK_VR.Interpreters;
 using Valve.VR;
 using KK_VR.Holders;
+using KK_VR.Settings;
 using static VRGIN.Controls.Controller;
 
 namespace KK_VR.Controls
@@ -130,8 +131,13 @@ namespace KK_VR.Controls
 
             if (Controller.GetPressDown(EVRButtonId.k_EButton_Grip))
             {
-                
-                if (_menu.IsAttached)
+                if (!KoikSettings.FrameKoiAllowWorldGrip.Value)
+                {
+                    // FrameKoi hand-first policy: always deliver the grip to the scene,
+                    // even near the floating menu. Never start world dragging.
+                    KoikGameInterp.SceneInput.OnButtonDown(_index, EVRButtonId.k_EButton_Grip, direction);
+                }
+                else if (_menu.IsAttached)
                 {
                     _menu.AbandonGUI();
                 }
@@ -139,11 +145,9 @@ namespace KK_VR.Controls
                 {
                     _menuHandler.OnGrip(true);
                 }
-                // If particular interpreter doesn't want grip move right now, it will be blocked.
                 else if (!KoikGameInterp.SceneInput.OnButtonDown(_index, EVRButtonId.k_EButton_Grip, direction))
                 {
                     _gripMove = new GripMove(HandHolder.GetHand(_index), HandHolder.GetHand(_index == 0 ? 1 : 0));
-                    // Grab initial Trigger/Touchpad modifiers, if they were already pressed.
                     if (Controller.GetPress(EVRButtonId.k_EButton_SteamVR_Trigger)) _gripMove.OnTrigger(true);
                     if (Controller.GetPress(EVRButtonId.k_EButton_SteamVR_Touchpad)) _gripMove.OnTouchpad(true);
                     KoikGameInterp.SceneInput.OnGripMove(_index, active: true);
@@ -151,7 +155,12 @@ namespace KK_VR.Controls
             }
             else if (Controller.GetPressUp(EVRButtonId.k_EButton_Grip))
             {
-                if (menuInteractable)
+                if (!KoikSettings.FrameKoiAllowWorldGrip.Value)
+                {
+                    // Always pair down/up, regardless of menu proximity.
+                    KoikGameInterp.SceneInput.OnButtonUp(_index, EVRButtonId.k_EButton_Grip, direction);
+                }
+                else if (menuInteractable)
                 {
                     _menuHandler.OnGrip(false);
                 }

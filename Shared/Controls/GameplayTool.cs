@@ -50,9 +50,9 @@ namespace KK_VR.Controls
             HandleInput();
             // Only the right tracked controller owns yaw. The other controller's
             // axis remains available for future movement bindings.
-            if (_index == 1 && KoikGameInterp.SceneInput is ActionSceneInput roaming)
+            if (_index == 1 && KoikGameInterp.SceneInput != null)
             {
-                roaming.SetFrameKoiRightStick(Controller.GetAxis().x);
+                KoikGameInterp.SceneInput.SetFrameKoiRightStick(Controller.GetAxis().x);
             }
             _gripMove?.HandleGrabbing();
         }
@@ -214,7 +214,7 @@ namespace KK_VR.Controls
                 // While using the right analog axis for roaming yaw, legacy
                 // direction events must not generate a second turn.
                 var suppressRoamingTurn = KoikSettings.FrameKoiRightStickTurning.Value &&
-                    KoikGameInterp.SceneInput is ActionSceneInput;
+                    KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.ActionScene;
                 if (menuInteractable)
                 {
                     _menuHandler.SetLastDirection(direction);

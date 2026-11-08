@@ -188,7 +188,7 @@ namespace KK_VR.Interpreters
         /// every frame, including zero, so center/release arms snap turning again.
         /// Separate from touchpad directional events used by other scenes.
         /// </summary>
-        internal void SetFrameKoiRightStick(float rawX)
+        internal override void SetFrameKoiRightStick(float rawX)
         {
             if (!KoikSettings.FrameKoiRightStickTurning.Value)
             {

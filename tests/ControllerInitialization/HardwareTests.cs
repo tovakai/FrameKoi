@@ -159,6 +159,6 @@ static class HardwareTests
             "uncrouch reconciles both keys after config change");
         input.OnDisable();
         KoikSettings.FrameKoiGameLocomotion.Value=true;
-        harmony.UnpatchSelf();
+        harmony.UnpatchAll(harmony.Id);
     }
 }

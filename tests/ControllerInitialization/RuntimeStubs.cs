@@ -228,12 +228,14 @@ namespace ActionGame.Chara.Mover
 {
     public class Main
     {
-        public bool MouseMoving, AllowMove=true;
+        public bool mouseMoving, AllowMove=true;
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Update()
         {
-            ActionInput.PlayerMove(ref MouseMoving);
-            var direction=AllowMove && MouseMoving ? Vector3.forward : Vector3.zero;
+            ActionInput.PlayerMove(ref mouseMoving);
+            mouseMoving=mouseMoving && AllowMove;
+            var direction=mouseMoving ? VRGIN.Core.VR.Camera.Head.forward : Vector3.zero;
+            direction.y=0;
             var velocity=direction.normalized*KK_VR.Interpreters.ActionSceneInterp.actionScene.Player.agent.speed;
             KK_VR.Interpreters.ActionSceneInterp.actionScene.Player.agent.Move(velocity*Time.deltaTime);
         }

@@ -13,6 +13,7 @@ using KK_VR.Grasp;
 using KK_VR.Settings;
 using Valve.VR;
 using System.Text;
+using Utils = Illusion.Game.Utils;
 
 namespace KK_VR.Holders
 {

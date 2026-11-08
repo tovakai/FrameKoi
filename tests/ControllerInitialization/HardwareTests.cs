@@ -119,6 +119,13 @@ static class HardwareTests
         mover.Update();
         check(Near(before,player.RawPosition),"off-navmesh does not fall back to transform movement");
         player.agent.isOnNavMesh=true;
+        VR.Camera.Head.rotation=Quaternion.Euler(90,0,0);
+        input.SetFrameKoiLeftStick(new Vector2(0,1));
+        var verticalBefore=player.RawPosition;
+        mover.Update();
+        check(!Near(verticalBefore,player.RawPosition),"vertical head pose retains gated stick movement");
+        VR.Camera.Head.rotation=Quaternion.identity;
+        input.SetFrameKoiLeftStick(new Vector2(1,1));
         for(int i=0;i<100;i++) mover.Update();
         check(player.RawPosition.x<=0.5f && player.RawPosition.z<=0.5f,"simulated navigation boundary retained");
         input.FrameKoiSprintClick();
@@ -151,6 +158,11 @@ static class HardwareTests
         check(!Near(forwardBefore,VR.Camera.Head.forward) && Near(headBefore,VR.Camera.Head.position),
             "smooth turning retains headset pivot");
         check(player.DirectPositionWrites==0,"smooth yaw does not teleport protagonist under native game movement");
+        var pausePosition=player.RawPosition;
+        Time.timeScale=0;
+        mover.Update();
+        check(Near(pausePosition,player.RawPosition),"pause suppresses native stick displacement");
+        Time.timeScale=1;
         KoikSettings.FrameKoiGameLocomotion.Value=false;
         input.Crouch(true);
         Manager.Config.ActData.CrouchCtrlKey=!Manager.Config.ActData.CrouchCtrlKey;

@@ -50,8 +50,9 @@ FrameKoi game left stick movement (1. Roaming) defaults to true for native
 input. The guarded Harmony hook supplies a movement request to the game's
 ActionGame.Chara.Mover.Main.Update and replaces its direction-normalization
 step. The original movement regulation, cursor/pause and event gates, animator
-speed path and NavMeshAgent.Move remain in place. When the game produces zero
-direction, the hook preserves zero. Disabled/off-navmesh agents cannot take
+speed path and NavMeshAgent.Move remain in place. The game's gated movement
+request is preserved; looking straight up/down falls back to the origin's
+heading rather than disabling movement. Disabled/off-navmesh agents cannot take
 the game's direct-position fallback under native stick control.
 
 Movement is head-relative with radial deadzone (default 0.2), continuous

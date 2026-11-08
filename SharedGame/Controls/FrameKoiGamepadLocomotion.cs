@@ -15,6 +15,7 @@ namespace KK_VR.Controls
     internal static class FrameKoiGamepadLocomotion
     {
         internal static bool Available;
+        internal static FieldInfo MoveRequestField;
         [ThreadStatic] internal static bool InPlayerUpdate;
         private static ChaControl _followTarget;
         private static Vector3 _lastPlayerPosition;
@@ -24,18 +25,27 @@ namespace KK_VR.Controls
             KoikSettings.FrameKoiGameLocomotion.Value &&
             KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.ActionScene && Input != null;
 
-        // Called only in the game's own Main.Update, after its cursor, event,
-        // regulation and movement-state gates. Zero input/gated input stays zero.
-        internal static Vector3 Direction(ref Vector3 original)
+        // Called only after the game's cursor/event/regulation gates have
+        // resolved mouseMoving. A vertical head pose must not erase a valid
+        // move request merely because the old camera-forward vector is vertical.
+        internal static Vector3 Direction(ref Vector3 original, object moverState)
         {
             if (!InPlayerUpdate || !Enabled) return original.normalized;
             var player = ActionSceneInterp.actionScene?.Player;
-            if (original.sqrMagnitude < 0.0001f || player?.agent == null ||
+            if (!(bool)MoveRequestField.GetValue(moverState) || player?.agent == null ||
                 !player.agent.enabled || !player.agent.isOnNavMesh || Time.timeScale == 0f)
                 return Vector3.zero;
             var axis = Input.MoveAxis;
-            return Quaternion.Euler(0f, VR.Camera.Head.eulerAngles.y, 0f) *
-                new Vector3(axis.x, 0f, axis.y) * KoikSettings.FrameKoiGameMoveScale.Value;
+            var forward = VR.Camera.Head.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.001f)
+            {
+                forward = VR.Camera.Origin.forward;
+                forward.y = 0f;
+            }
+            forward.Normalize();
+            return (Vector3.Cross(Vector3.up, forward) * axis.x + forward * axis.y) *
+                KoikSettings.FrameKoiGameMoveScale.Value;
         }
 
         internal static void FollowPlayer()
@@ -99,25 +109,38 @@ namespace KK_VR.Controls
             var inputType = AccessTools.TypeByName("ActionGame.ActionInput");
             var playerMove = AccessTools.Method(inputType, "PlayerMove");
             var move = AccessTools.Method(typeof(UnityEngine.AI.NavMeshAgent), "Move");
+            var request = AccessTools.Field(AccessTools.TypeByName("ActionGame.Chara.Mover.Main"), "mouseMoving");
             // Fail closed if another game version/mod changed the known pipeline.
             // The original mover remains intact, with legacy controls available.
             if (code.Count(i => i.Calls(normalize)) != 1 || code.Count(i => i.Calls(playerMove)) != 1 ||
                 code.Count(i => i.Calls(move)) != 1 ||
+                request == null || request.FieldType != typeof(bool) ||
                 AccessTools.PropertyGetter(inputType, "isWalk") == null ||
                 AccessTools.PropertyGetter(inputType, "isCrouch") == null)
             {
                 VRLog.Warn("FrameKoi game mover pattern mismatch; retaining legacy trigger walking.");
                 return code;
             }
+            var patched = new List<CodeInstruction>();
             foreach (var instruction in code)
             {
-                if (!instruction.Calls(normalize)) continue;
-                instruction.opcode = OpCodes.Call;
-                instruction.operand = AccessTools.Method(typeof(FrameKoiGamepadLocomotion), nameof(FrameKoiGamepadLocomotion.Direction));
+                if (instruction.Calls(normalize))
+                {
+                    var loadState = new CodeInstruction(OpCodes.Ldarg_0);
+                    loadState.labels.AddRange(instruction.labels);
+                    instruction.labels.Clear();
+                    loadState.blocks.AddRange(instruction.blocks);
+                    instruction.blocks.Clear();
+                    patched.Add(loadState);
+                    instruction.opcode = OpCodes.Call;
+                    instruction.operand = AccessTools.Method(typeof(FrameKoiGamepadLocomotion), nameof(FrameKoiGamepadLocomotion.Direction));
+                }
+                patched.Add(instruction);
             }
+            FrameKoiGamepadLocomotion.MoveRequestField = request;
             FrameKoiGamepadLocomotion.Available = true;
             VRLog.Info("FrameKoi game locomotion hook installed; original game movement gates and NavMeshAgent retained.");
-            return code;
+            return patched;
         }
     }
 

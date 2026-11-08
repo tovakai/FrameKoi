@@ -121,6 +121,8 @@ namespace KK_VR.Settings
         public static ConfigEntry<bool> ContinuousRotation { get; private set; }
         public static ConfigEntry<FrameKoiTurningMode> FrameKoiTurnMode { get; private set; }
         public static ConfigEntry<float> FrameKoiSmoothTurnSpeed { get; private set; }
+        public static ConfigEntry<bool> FrameKoiRightStickTurning { get; private set; }
+        public static ConfigEntry<float> FrameKoiStickDeadzone { get; private set; }
 
         #endregion
 
@@ -353,6 +355,13 @@ namespace KK_VR.Settings
             FrameKoiSmoothTurnSpeed = config.Bind(SectionRoaming, "FrameKoi smooth turn speed", 90f,
                 new ConfigDescription("Smooth-turn speed in degrees per second.",
                     new AcceptableValueRange<float>(15f, 360f)));
+
+            FrameKoiRightStickTurning = config.Bind(SectionRoaming, "FrameKoi right stick turning", true,
+                "Use the right controller's analog thumbstick X axis for roaming turns, instead of legacy directional turning. Disable if the SteamVR controller binding does not expose the analog stick.");
+
+            FrameKoiStickDeadzone = config.Bind(SectionRoaming, "FrameKoi right stick deadzone", 0.2f,
+                new ConfigDescription("Ignore right stick movement near center; also controls turn speed response.",
+                    new AcceptableValueRange<float>(0.05f, 0.5f)));
 
 
             #endregion

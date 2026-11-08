@@ -23,6 +23,7 @@ FrameKoi is based on [IllusionMods/KKS_VR](https://github.com/IllusionMods/KKS_V
 
 ### Independent analog stick inputs
 - The left and right tracked VRGIN controllers now each pass their own `GetAxis()` to the scene through virtual hooks on `SceneInput`; only roaming acts on them. No SteamVR input-action manifest has been implemented.
+- `1. Roaming → FrameKoi axis diagnostics` is **OFF by default**. When enabled, each controller logs analog `x, y` values at most once per second via VRLog, to verify actual Steam Frame axis bindings. Turn it back off after testing.
 - Right stick controls roaming yaw (if mapped by SteamVR), with a configurable deadzone and smooth/snap/off mode.
 - `1. Roaming → FrameKoi experimental left stick movement` is **OFF by default**. When explicitly enabled, the left stick moves the VR origin in the headset's horizontal facing direction and synchronizes the protagonist through `PlayerToCamera()`. Its speed and radial deadzone are configurable. This direct translation **may bypass collisions, navigation and event triggers**. Do not use it for normal play until validated.
 - In roaming, controllers assigned an analog role no longer send their legacy directional callbacks to scene actions while outside menus; otherwise a stick turn/move could inadvertently crouch, dash or interact.

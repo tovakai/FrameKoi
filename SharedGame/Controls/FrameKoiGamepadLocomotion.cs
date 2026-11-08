@@ -22,6 +22,7 @@ namespace KK_VR.Controls
         private static int _followFrame = -1;
         internal static ActionSceneInput Input => KoikGameInterp.SceneInput as ActionSceneInput;
         internal static bool Enabled => Available && FrameKoiNativeInput.Ready &&
+            FrameKoiInputRuntime.RoamingAllowed &&
             KoikSettings.FrameKoiGameLocomotion.Value &&
             KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.ActionScene && Input != null;
 

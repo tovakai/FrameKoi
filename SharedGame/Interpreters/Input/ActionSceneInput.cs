@@ -203,7 +203,7 @@ namespace KK_VR.Interpreters
 
         protected override bool OnTrigger(int index, bool press)
         {
-            if (FrameKoiGamepadLocomotion.Enabled)
+            if (FrameKoiNativeInput.Ready || KoikSettings.FrameKoiNativeInputEnabled.Value)
             {
                 _pressedButtons[index, 0] = press;
                 if (press && (actionScene.Player.isGateHit || actionScene.Player.actionTarget != null ||
@@ -498,6 +498,11 @@ namespace KK_VR.Interpreters
             ReleaseButton(Pressed.Z);
             ReleaseButton(Pressed.Ctrl);
             if (_walking) PressButton(Pressed.Shift);
+        }
+        internal void ToggleButtonCrouch()
+        {
+            if (_crouching) StandUp();
+            else Crouch(buttonPrompt: true);
         }
 
         private void ResetCrouchCamera()

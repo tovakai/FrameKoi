@@ -58,6 +58,7 @@ namespace KK_VR.Interpreters
             VR.Camera.gameObject.AddComponent<EffectorVFX>();
             VR.Camera.gameObject.AddComponent<SmoothMover>();
             VR.Camera.gameObject.AddComponent<FirstPersonBodyVisibility>();
+            VR.Camera.gameObject.AddComponent<FrameKoiControlRuntime>();
             SceneManager.sceneLoaded += OnSceneLoaded;
 #if KK
             _party = Paths.ProcessName.Equals($"Koikatsu Party");
@@ -87,6 +88,7 @@ namespace KK_VR.Interpreters
             //}
             _sceneInterpreter.OnLateUpdate();
             FrameKoiGamepadLocomotion.FollowPlayer();
+            (FrameKoiInputRuntime.Current as FrameKoiControlRuntime)?.ApplySceneTurn();
         }
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {

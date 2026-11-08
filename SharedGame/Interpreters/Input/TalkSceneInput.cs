@@ -52,15 +52,17 @@ namespace KK_VR.Interpreters
 
         internal override bool ConfirmUI()
         {
-            if (_interpreter.IsStart || talkScene == null) return false;
+            if (_interpreter.IsStart) return false;
             var adv = advScene != null && IsADV;
+            if (!adv && talkScene == null) return false;
             if (adv && !IsADVChoice)
             {
                 // Existing ADV advance gesture, scoped to active dialogue.
-                VR.Input.Mouse.VerticalScroll(-1);
-                return true;
+                if (FrameKoiGameActions.AdvanceDialogue()) return true;
+                if (KoikSettings.FrameKoiCompatibilityInput.Value) { VR.Input.Mouse.VerticalScroll(-1); return true; }
+                return false;
             }
-            var relevant = GetRelevantButtons(GetState(), adv);
+            var relevant = GetRelevantButtons(adv ? State.None : GetState(), adv);
             if (relevant == null) return false;
             var buttons = relevant.Where(b => b != null && b.isActiveAndEnabled && b.IsInteractable()).ToArray();
             if (buttons.Length == 0) return false;
@@ -72,6 +74,25 @@ namespace KK_VR.Interpreters
                 MarkButton(buttons[0], adv);
             }
             else selected.onClick.Invoke();
+            return true;
+        }
+
+        internal override bool NavigateUI(int x, int y)
+        {
+            if (_interpreter.IsStart) return true;
+            var adv = advScene != null && IsADV;
+            if (!adv && talkScene == null) return false;
+            var buttons = !adv && x != 0 ? GetMainButtons() : GetRelevantButtons(adv ? State.None : GetState(), adv);
+            if (buttons == null) return false;
+            buttons = buttons.Where(b => b != null && b.IsActive() && b.IsInteractable()).ToArray();
+            if (buttons.Length == 0) return false;
+            var focused = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
+            var selected = buttons.FirstOrDefault(b => b.gameObject == focused) ?? GetSelectedButton(buttons, adv);
+            var index = selected == null ? 0 : (Array.IndexOf(buttons, selected) + (x != 0 ? x : -y) + buttons.Length) % buttons.Length;
+            foreach (var button in buttons) button.name = button.name.TrimEnd('+');
+            MarkButton(buttons[index], adv);
+            buttons[index].Select();
+            if (!adv && x != 0) buttons[index].onClick.Invoke();
             return true;
         }
         internal override void OnDirectionUp(int index, TrackpadDirection direction)

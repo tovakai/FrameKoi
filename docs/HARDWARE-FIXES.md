@@ -97,3 +97,39 @@ captures its owning item and cannot write a layer index into the next item.
 Cycling during an active grip/grasp is deferred until the grip is released.
 H-scene handler disable now ends manual item movement and restores hidden
 hand rendering, in addition to releasing temporary trigger clicks.
+
+## Install and headset checklist
+
+Download FrameKoi-test-binaries from the successful Windows workflow for the
+new branch head. With the game stopped, back up the installed DLL, then replace
+BepInEx/plugins/KK_MainGameVR/KoikatuVR.dll with bin/KK/KoikatuVR.dll from the
+artifact. For Sunshine use bin/KKS/KKS_MainGameVR.dll in the matching plugin
+directory. Retain the existing working VRGIN/runtime files, SteamVR/actions.json,
+binding file and native-input configuration. Avoid duplicate plugin DLL copies.
+The new settings are added on startup; no configuration reset is required.
+
+1. Confirm both input tools and native actions still initialize; View/Menu
+   opens the menu and right stick still turns smoothly.
+2. Calibrate X, Y and Z independently for both hands, then verify finger,
+   normal hand and toy contacts match the rendered hands.
+3. Check HideBody and FullBody in roaming. Try HideArms and inspect its fallback
+   message. Verify NPCs and tracked hands stay visible; inspect the desktop view.
+4. Walk forward/back/sideways/diagonally, then test walls, stairs, slopes, gates
+   and scene reloads. Move physically within the play space before/after turning.
+5. Test partial stick displacement, sprint click, stopping, and both controllers
+   reconnecting. Check the game-locomotion-installed message; on pattern mismatch
+   use the documented legacy fallback.
+6. Toggle crouch idle, while starting/stopping movement, then reconnect and
+   change scenes. Verify uncrouch always works.
+7. Press A over UI and empty world space. Only UI should react. Verify B and
+   the working native interaction buttons remain functional.
+8. Repeatedly cycle trigger+bumper during/after layer transitions and return
+   to finger mode; verify contacts and renderer visibility recover. Release any
+   grip/grasp before cycling. Repeat in talk and H scenes.
+
+The simulation links production dispatcher, math, roaming input, render-scope
+and guarded Harmony locomotion code. Game input, Unity objects/camera events and
+NavMeshAgent responses are simulated. Its boundary test proves routing through
+that adapter, not real collision/navigation safety. The animated hand assets,
+NPC reactions, nonstandard body meshes, Proton controller-type reporting and
+actual Steam Frame poses still require the headset checklist.

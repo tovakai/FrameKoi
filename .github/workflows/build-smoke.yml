@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      - name: Test controller startup without render-model callbacks
+      - name: Test controller startup, render scopes and game locomotion
         run: dotnet run --project tests/ControllerInitialization/ControllerInitialization.csproj --configuration Release
       - name: Provide .NET 3.5 reference assemblies for legacy VRGIN
         shell: pwsh
@@ -63,4 +63,5 @@ jobs:
             SteamVR/actions.json
             SteamVR/bindings_frame_controller.json
             docs/HEADSET-TEST.md
+            docs/HARDWARE-FIXES.md
 

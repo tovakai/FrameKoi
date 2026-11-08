@@ -13,25 +13,29 @@ namespace UnityEngine
         public int GetInstanceID() => GetHashCode();
         public static implicit operator bool(Object value) => value != null;
     }
-    public class Transform : Object { }
     public class Texture2D : Object { }
     public struct Vector2
     {
         public float x, y;
         public Vector2(float x, float y) { this.x = x; this.y = y; }
         public static Vector2 zero => new Vector2();
+        public float sqrMagnitude => x*x + y*y;
+        public float magnitude => (float)Math.Sqrt(sqrMagnitude);
+        public Vector2 normalized => magnitude > 0 ? new Vector2(x/magnitude, y/magnitude) : zero;
+        public static Vector2 operator *(Vector2 v, float s) => new Vector2(v.x*s,v.y*s);
     }
     public static class Time
     {
         public static int frameCount;
         public static float unscaledTime;
+        public static float deltaTime = 0.02f, unscaledDeltaTime = 0.02f, timeScale = 1f;
     }
 }
 namespace Valve.VR
 {
     public enum EVRButtonId { k_EButton_Grip, k_EButton_ApplicationMenu, k_EButton_SteamVR_Trigger, k_EButton_SteamVR_Touchpad }
 }
-namespace WindowsInput.Native { public enum VirtualKeyCode { ESCAPE } }
+namespace WindowsInput.Native { public enum VirtualKeyCode { ESCAPE, LSHIFT, CONTROL, VK_Z } }
 public class SteamVR_TrackedObject { public int index; public bool isValid = true; }
 public class SteamVR_Controller
 {
@@ -71,11 +75,17 @@ namespace VRGIN.Controls.Tools
 }
 namespace VRGIN.Core
 {
-    public class Mode { public Controller Left, Right; }
+    public class Mode
+    {
+        public Controller Left, Right;
+        public int Moves;
+        public void MoveToPosition(Vector3 pos, Quaternion rot, bool ignore) { Moves++; }
+    }
     public static class VR
     {
         public static Mode Mode = new Mode();
         public static Inputs Input = new Inputs();
+        public static CameraRig Camera = new CameraRig();
     }
     public class Inputs { public Mouse Mouse = new Mouse(); public Keyboard Keyboard = new Keyboard(); }
     public class Mouse
@@ -89,8 +99,9 @@ namespace VRGIN.Core
     public class Keyboard
     {
         public bool Escape;
-        public void KeyDown(WindowsInput.Native.VirtualKeyCode key) { Escape = true; }
-        public void KeyUp(WindowsInput.Native.VirtualKeyCode key) { Escape = false; }
+        public readonly HashSet<WindowsInput.Native.VirtualKeyCode> Held = new HashSet<WindowsInput.Native.VirtualKeyCode>();
+        public void KeyDown(WindowsInput.Native.VirtualKeyCode key) { Held.Add(key); Escape = Held.Contains(WindowsInput.Native.VirtualKeyCode.ESCAPE); }
+        public void KeyUp(WindowsInput.Native.VirtualKeyCode key) { Held.Remove(key); Escape = Held.Contains(WindowsInput.Native.VirtualKeyCode.ESCAPE); }
     }
     public static class VRLog
     {
@@ -102,7 +113,7 @@ namespace VRGIN.Core
 namespace KK_VR.Settings
 {
     public class Setting { public bool Value; }
-    public static class KoikSettings
+    public static partial class KoikSettings
     {
         public static Setting FrameKoiAxisDiagnostics = new Setting();
         public static Setting FrameKoiAllowWorldGrip = new Setting();
@@ -132,24 +143,30 @@ namespace KK_VR.Interpreters
 {
     public class SceneInput
     {
+        protected bool[,] _pressedButtons = new bool[2,3];
+        public bool IsTriggerPress(int i) => _pressedButtons[i,0];
         public bool IsBusy;
         public List<string> Events = new List<string>();
         public Vector2 LeftStick;
         public float RightStick;
-        public void SetFrameKoiLeftStick(Vector2 value) { LeftStick = value; }
-        public void SetFrameKoiRightStick(float value) { RightStick = value; }
-        public void FrameKoiSprintClick() { Events.Add("sprint"); }
+        internal virtual void SetFrameKoiLeftStick(Vector2 value) { LeftStick = value; }
+        internal virtual void SetFrameKoiRightStick(float value) { RightStick = value; }
+        internal virtual void ReleaseController(int index) { }
+        internal virtual void FrameKoiSprintClick() { Events.Add("sprint"); }
+        internal virtual void OnDisable() { }
+        internal virtual void HandleInput() { }
+        protected virtual bool OnTrigger(int index, bool press) => false;
         public bool OnButtonDown(int hand, EVRButtonId button, TrackpadDirection direction)
-        { Events.Add($"down:{hand}:{button}"); return false; }
+        { Events.Add($"down:{hand}:{button}"); return button == EVRButtonId.k_EButton_SteamVR_Trigger && OnTrigger(hand,true); }
         public void OnButtonUp(int hand, EVRButtonId button, TrackpadDirection direction)
-        { Events.Add($"up:{hand}:{button}"); }
-        public void OnDirectionDown(int hand, TrackpadDirection direction) { Events.Add($"direction-down:{hand}:{direction}"); }
-        public void OnDirectionUp(int hand, TrackpadDirection direction) { Events.Add($"direction-up:{hand}:{direction}"); }
+        { Events.Add($"up:{hand}:{button}"); if(button == EVRButtonId.k_EButton_SteamVR_Trigger) OnTrigger(hand,false); }
+        internal virtual bool OnDirectionDown(int hand, TrackpadDirection direction) { Events.Add($"direction-down:{hand}:{direction}"); return false; }
+        internal virtual void OnDirectionUp(int hand, TrackpadDirection direction) { Events.Add($"direction-up:{hand}:{direction}"); }
         public void OnGripMove(int hand, bool active) { }
     }
     public static class KoikGameInterp
     {
-        public enum SceneType { ActionScene }
+        public enum SceneType { OtherScene, ActionScene }
         public static SceneType CurrentScene;
         public static SceneInput SceneInput = new SceneInput();
     }
@@ -179,6 +196,8 @@ namespace KK_VR.Controls
         public static int Created;
         public static bool MenuInRange;
         public bool LaserVisible;
+        public static int Submissions;
+        public static void SubmitSelectedUI() { Submissions++; }
         private bool _pressed;
         public KoikMenuHandler(Controller owner) { Created++; }
         public bool CheckMenu() => MenuInRange;

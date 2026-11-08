@@ -144,7 +144,8 @@ static class Program
 
         Pressed.Add("b"); Pressed.Add("a"); Pressed.Add("x");
         Next(left, right);
-        Check(VR.Input.Keyboard.Escape && VR.Input.Mouse.Left && VR.Input.Mouse.Right, "desktop input down");
+        Check(VR.Input.Keyboard.Escape && !VR.Input.Mouse.Left && VR.Input.Mouse.Right && KoikMenuHandler.Submissions == 1,
+            "A routes to UI submission without injecting a world click");
         right.Disable();
         Check(!VR.Input.Keyboard.Escape && !VR.Input.Mouse.Left && !VR.Input.Mouse.Right, "disable flushes desktop releases");
         right.OnRenderModelLoaded();
@@ -168,6 +169,9 @@ static class Program
         FrameKoiNativeInput.Reset();
         Check(!FrameKoiNativeInput.Ready && !FrameKoiNativeInput.Poll(), "reset is safe");
         Check(!FrameKoiNativeInput.Initialize("missing-actions.json"), "missing manifest preserves fallback");
+        InstallApi();
+        UpdateError = 0; ReadError = 0; Active = true; Pressed.Clear();
+        HardwareTests.Run(Check);
         FrameKoiInputDiagnostics.Reset();
         VRLog.Messages.Clear();
         for (int i = 0; i < 1000; i++) FrameKoiInputDiagnostics.Log("same", "repeat");

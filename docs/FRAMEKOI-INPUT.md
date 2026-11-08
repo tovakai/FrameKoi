@@ -17,18 +17,21 @@ FrameKoi is based on [IllusionMods/KKS_VR](https://github.com/IllusionMods/KKS_V
 - `1. Roaming → FrameKoi smooth turn speed`: **90 degrees/second** by default (15–360).
 - Snap continues to use the existing `Rotation angle` value.
 - Smooth rotation runs at frame time, clamped to 50 ms per update to avoid exaggerated spins following a stall.
-- Both turning modes are currently activated through the **existing KKS_VR left/right directional events**. The old `Continuous rotation` config remains for legacy config compatibility but is superseded by FrameKoi turning mode.
+- **New:** `1. Roaming → FrameKoi right stick turning = true` (default) polls the **right VRGIN controller's actual analog X axis** on every controller update, independently of the left controller. Smooth turning scales with axis deflection; snap turning activates past 0.75 deflection and rearms after centering.
+- `1. Roaming → FrameKoi right stick deadzone = 0.2` (range 0.05–0.5) suppresses small deviations. Legacy left/right directional turn events are suppressed during roaming when this mode is enabled, preventing double-turns.
+- **Compatibility fallback:** set `FrameKoi right stick turning = false` to restore the existing legacy directional events. The older `Continuous rotation` setting remains for compatibility but FrameKoi turning mode takes precedence.
 
 ## Not implemented yet
 
-- Independent Steam Frame right-thumbstick yaw and left-thumbstick locomotion. The underlying KKS_VR/VRGIN OpenVR layer currently reads a single `GetAxis()` per tracked controller and interprets it as a legacy touchpad/thumbstick. We need a dedicated action source instead of pretending this already provides independent sticks.
+- Native SteamVR action-manifest bindings. The **right analog stick is now polled independently** through the existing per-controller `GetAxis()` method. Whether SteamVR maps the Frame's intended stick to that axis must be confirmed on the actual headset.
+- Left thumbstick locomotion. Existing roaming movement still uses the upstream game's trigger-held walking; do not mistake right analog yaw for a completed two-stick locomotion implementation.
 - Direct A/B/X/Y, shoulder, D-pad, and stick-click bindings. We need to map actual OpenVR / SteamVR input action paths and test with the Steam Frame.
 - Context-specific UI fallback for menu repositioning after reserving the grips for hands.
 - Runtime, compiler, or physical Steam Frame validation. **These edits are committed but untested in-game.**
 
 ## Next implementation slices
 
-1. Isolate raw controller sampling behind a `FrameKoiInput` layer, preserving the existing scene handlers.
+1. Isolate controller sampling behind a `FrameKoiInput` layer instead of the current small direct analog-right-stick bridge, preserving the existing scene handlers.
 2. Add SteamVR action manifest/binding support, handling disconnected/reconnected controllers and press/release state.
 3. Drive movement and analog yaw through separate axis actions; apply deadzones and smooth/snap/off turning policies.
 4. Map menu, click, teleports, and scene-specific actions to the spare buttons, with a configuration panel and diagnostics.

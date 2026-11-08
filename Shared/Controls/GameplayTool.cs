@@ -75,6 +75,7 @@ namespace KK_VR.Controls
             DestroyGripMove();
             if (_index == 0) _inputScene?.SetFrameKoiLeftStick(Vector2.zero);
             else _inputScene?.SetFrameKoiRightStick(0f);
+            _inputScene?.ReleaseController(_index);
             _menuHandler?.ReleaseInput();
             _lastDirection = TrackpadDirection.Center;
             _inputScene = null;
@@ -270,12 +271,11 @@ namespace KK_VR.Controls
                     {
                         _nativeAOnMenu = NativeMenuInteractable();
                         if (_nativeAOnMenu) _menuHandler.OnTrigger(true);
-                        else VR.Input.Mouse.LeftButtonDown();
+                        else KoikMenuHandler.SubmitSelectedUI();
                     }
                     else
                     {
                         if (_nativeAOnMenu) _menuHandler.OnTrigger(false);
-                        else VR.Input.Mouse.LeftButtonUp();
                         _nativeAOnMenu = false;
                     }
                     break;

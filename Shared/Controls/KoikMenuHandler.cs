@@ -10,6 +10,8 @@ using System.Linq;
 using VRGIN.Native;
 using static VRGIN.Native.WindowsInterop;
 using KK_VR.Holders;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace KK_VR.Controls
 {
@@ -52,6 +54,16 @@ namespace KK_VR.Controls
         }
 
         internal void SetLastDirection(Controller.TrackpadDirection direction) => _lastDirection = direction;
+
+        internal static void SubmitSelectedUI()
+        {
+            var system = EventSystem.current;
+            var selected = system?.currentSelectedGameObject;
+            var selectable = selected != null ? selected.GetComponent<Selectable>() : null;
+            if (selectable != null && selectable.IsActive() && selectable.IsInteractable())
+                ExecuteEvents.Execute(selected, new BaseEventData(system), ExecuteEvents.submitHandler);
+            // No selected UI means no action. Never synthesize a world LMB click.
+        }
 
         internal KoikMenuHandler(Controller controller)
         {

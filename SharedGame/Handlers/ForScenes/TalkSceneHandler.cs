@@ -10,6 +10,11 @@ namespace KK_VR.Handlers
 {
     class TalkSceneHandler : ItemHandler
     {
+        internal override void OnItemChanging()
+        {
+            TriggerRelease();
+            base.OnItemChanging();
+        }
         internal bool DoUndress(bool decrease, out ChaControl chara)
         {
             var info = _tracker.GetColliderInfo;
@@ -132,3 +137,4 @@ namespace KK_VR.Handlers
     }
 
 }
+

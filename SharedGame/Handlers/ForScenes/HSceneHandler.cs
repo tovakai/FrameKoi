@@ -25,8 +25,16 @@ namespace KK_VR.Handlers
 
         protected override void OnDisable()
         {
-            base.OnDisable();
+            StopMovingAibuItem();
             TriggerRelease();
+            base.OnDisable();
+        }
+
+        internal override void OnItemChanging()
+        {
+            StopMovingAibuItem();
+            TriggerRelease();
+            base.OnItemChanging();
         }
 
         internal void StartMovingAibuItem(AibuColliderKind touch)

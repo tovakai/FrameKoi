@@ -521,8 +521,10 @@ namespace KK_VR.Holders
 
         internal void SetItemRenderer(bool show)
         {
-            if (_activeItem.aibuItem == null) return;
-            _activeItem.aibuItem.objBody.GetComponent<Renderer>().enabled = show;
+            if (_activeItem?.aibuItem?.objBody == null) return;
+            var renderer = _activeItem.aibuItem.objBody.GetComponent<Renderer>();
+            if (renderer != null) renderer.enabled = show;
         }
     }
 }
+

@@ -105,6 +105,10 @@ namespace KK_VR.Interpreters
         {
         }
 
+        internal virtual void ReleaseController(int index)
+        {
+        }
+
         // Native controller actions that are independent of legacy trackpad directions.
         internal virtual void FrameKoiSprintClick()
         {
@@ -374,3 +378,4 @@ namespace KK_VR.Interpreters
         }
     }
 }
+

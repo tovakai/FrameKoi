@@ -75,3 +75,25 @@ Compatibility with each compiled target does not prove navmesh behavior:
 stairs, corners, slopes, gates, off-mesh links and room-scale/yaw combinations
 must still be tested in the headset. Large scene warps use the existing
 ResetCamera/reload path rather than being treated as stick displacement.
+
+## Input state fixes
+
+A clicks only a targeted floating menu or submits an active/interactable
+selected Unity UI control. With neither target, A does nothing. It no longer
+injects an unrestricted left mouse press/release into the world. B, X, menu
+buttons and the physical binding layout remain as before.
+
+Native game locomotion supplies crouch as an explicit game input state, so
+walking does not require holding a synthetic crouch key. D-pad Down still
+toggles it. StandUp always reconciles both Ctrl and Z, even if the crouch-key
+configuration changed or internal standing state was already reset.
+Controller release/disable clears crouch and sprint requests.
+
+Trigger+bumper keeps the existing scene-specific item cycle. Item changes
+release the previous handler's temporary interaction, restore visible/collidable
+item state, and start with a clean set of animation weights. A layer transition
+is canceled before switching items or starting another transition; its coroutine
+captures its owning item and cannot write a layer index into the next item.
+Cycling during an active grip/grasp is deferred until the grip is released.
+H-scene handler disable now ends manual item movement and restores hidden
+hand rendering, in addition to releasing temporary trigger clicks.

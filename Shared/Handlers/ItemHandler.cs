@@ -45,6 +45,14 @@ namespace KK_VR.Handlers
 #endif
         protected virtual bool IsInteractionEligible => true;
 
+        internal virtual void OnItemChanging()
+        {
+            ClearTracker();
+            _unwind = false;
+            _timer = 0f;
+            if (_rigidBody != null) _rigidBody.velocity = Vector3.zero;
+        }
+
         internal void Init(HandHolder hand)
         {
             _rigidBody = GetComponent<Rigidbody>();

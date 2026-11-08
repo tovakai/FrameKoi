@@ -110,6 +110,14 @@ namespace KK_VR.Interpreters
             ResetState();
         }
 
+        internal override void ReleaseController(int index)
+        {
+            StandUp();
+            _stickSprint = false;
+            _pressedButtons[index, 0] = false;
+            if (!IsTriggerPress(0) && !IsTriggerPress(1)) ReleaseButton(Pressed.RightMouse);
+        }
+
         internal override void HandleInput()
         {
             if (FrameKoiGamepadLocomotion.Enabled && _walking) StopWalking();
@@ -474,24 +482,13 @@ namespace KK_VR.Interpreters
         }
         internal void StandUp()
         {
-            if (!_standing)
-            {
-                _standing = true;
-                _crouching = false;
-                if (_walking)
-                {
-                    // Don't run after standing up.
-                    PressButton(Pressed.Shift);
-                }
-                if (!Manager.Config.ActData.CrouchCtrlKey)
-                {
-                    ReleaseButton(Pressed.Z);
-                }
-                else
-                {
-                    ReleaseButton(Pressed.Ctrl);
-                }
-            }
+            // Reconcile both possible keys even if movement/game state already
+            // stood up, or the configured crouch key changed while held.
+            _standing = true;
+            _crouching = false;
+            ReleaseButton(Pressed.Z);
+            ReleaseButton(Pressed.Ctrl);
+            if (_walking) PressButton(Pressed.Shift);
         }
     }
 }

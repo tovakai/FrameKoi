@@ -25,6 +25,7 @@ namespace KK_VR.Holders
         private readonly List<ItemType> _itemList = [];
         private Transform _controller;
         private ItemLag _itemLag;
+        private Coroutine _layerTransition;
         private Vector3 _handCalibration;
         private float _nextCalibrationProbe;
         private Quaternion CalibratedRotation => FrameKoiPoseMath.HandRotation(_controller.rotation, _handCalibration);
@@ -354,6 +355,7 @@ namespace KK_VR.Holders
         }
         private void DeactivateItem()
         {
+            CancelLayerTransition();
             _activeItem.rootPoint.gameObject.SetActive(false);
             //_activeItem.rootPoint.SetParent(VR.Manager.transform, false);
             StopSE();
@@ -389,16 +391,31 @@ namespace KK_VR.Holders
             }
         }
 
+        private void OnDisable()
+        {
+            CancelLayerTransition();
+        }
+
         // Due to scarcity of hotkeys, we'll go with increase only.
         /// <summary>
         /// Scroll hand item.
         /// </summary>
         internal void ChangeItem()
         {
+            if (_parent || Grasp.IsBusy || KoikGameInterp.SceneInput?.IsGripPress(Index) == true)
+            {
+                FrameKoiInputDiagnostics.Log("item-busy-" + Index,
+                    $"hand {Index}: release grip/grasp before cycling items");
+                return;
+            }
+            _handler?.OnItemChanging();
             DeactivateItem();
-
             _activeItem = _itemList[(_itemList.IndexOf(_activeItem) + 1) % _itemList.Count];
             ActivateItem();
+            SetItemRenderer(true);
+            SetCollisionState(true);
+            FrameKoiInputDiagnostics.Log("item-cycle-" + Index,
+                $"hand {Index}: item={_activeItem.animParam.index}, layer={_activeItem.layer}", 12);
         }
         private void PlaySE()
         {
@@ -438,7 +455,11 @@ namespace KK_VR.Holders
         }
         public void SetStartLayer()
         {
-            _activeItem.aibuItem.anm.SetLayerWeight(_activeItem.layer, 0f);
+            CancelLayerTransition();
+            if (_activeItem.animParam.layers != null)
+                foreach (var layer in _activeItem.animParam.layers)
+                    _activeItem.aibuItem.anm.SetLayerWeight(layer, 0f);
+            else _activeItem.aibuItem.anm.SetLayerWeight(_activeItem.layer, 0f);
             _activeItem.aibuItem.anm.SetLayerWeight(_activeItem.animParam.startLayer, 1f);
             _activeItem.layer = _activeItem.animParam.startLayer;
             UpdateDynamicBoneColliders();
@@ -446,6 +467,7 @@ namespace KK_VR.Holders
         public void ChangeLayer(bool increase, bool skipTransition = false)
         {
             if (_activeItem.animParam.layers == null) return;
+            CancelLayerTransition();
             StopSE();
             var anm = _activeItem.aibuItem.anm;
             var oldLayer = _activeItem.layer;
@@ -454,17 +476,17 @@ namespace KK_VR.Holders
             var newIndex = increase ? (oldIndex + 1) % _activeItem.animParam.layers.Length : oldIndex <= 0 ? _activeItem.animParam.layers.Length - 1 : oldIndex - 1;
             //VRPlugin.Logger.LogDebug($"oldIndex:{oldIndex}:newIndex:{newIndex}");
             var newLayer = _activeItem.animParam.layers[newIndex];
+            _activeItem.layer = newLayer;
 
             if (skipTransition)
             {
                 anm.SetLayerWeight(newLayer, 1f);
                 anm.SetLayerWeight(oldLayer, 0f);
-                _activeItem.layer = newLayer;
                 UpdateDynamicBoneColliders();
             }
             else
             {
-                StartCoroutine(ChangeLayerCo(anm, oldLayer, newLayer));
+                _layerTransition = StartCoroutine(ChangeLayerCo(_activeItem, oldLayer, newLayer));
             }
 
             if (newLayer != 0 && _activeItem.aibuItem.pathSEAsset != null)
@@ -473,8 +495,20 @@ namespace KK_VR.Holders
             }
         }
 
-        private IEnumerator ChangeLayerCo(Animator anm, int oldLayer, int newLayer)
+        private void CancelLayerTransition()
         {
+            if (_layerTransition == null) return;
+            StopCoroutine(_layerTransition);
+            _layerTransition = null;
+            if (_activeItem.animParam.layers != null)
+                foreach (var layer in _activeItem.animParam.layers)
+                    _activeItem.aibuItem.anm.SetLayerWeight(layer, layer == _activeItem.layer ? 1f : 0f);
+            UpdateDynamicBoneColliders();
+        }
+
+        private IEnumerator ChangeLayerCo(ItemType item, int oldLayer, int newLayer)
+        {
+            var anm = item.aibuItem.anm;
             var timer = 0f;
             var stop = false;
             while (!stop)
@@ -489,8 +523,11 @@ namespace KK_VR.Holders
                 anm.SetLayerWeight(oldLayer, 1f - timer);
                 yield return null;
             }
-            _activeItem.layer = newLayer;
-            UpdateDynamicBoneColliders();
+            if (_activeItem == item)
+            {
+                _layerTransition = null;
+                UpdateDynamicBoneColliders();
+            }
         }
 
 

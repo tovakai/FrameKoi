@@ -182,8 +182,13 @@ namespace KK_VR.Controls
             var sets = new[] { new ActiveActionSet { actionSet = _setHandle } };
             try
             {
-                if (_api.Update(sets, (uint)Marshal.SizeOf(typeof(ActiveActionSet)), 1) != 0)
+                var status = _api.Update(sets, (uint)Marshal.SizeOf(typeof(ActiveActionSet)), 1);
+                if (status != 0)
+                {
+                    VRLog.Warn("FrameKoi action polling failed (" + status + "); disabling native mode.");
+                    _ready = false;
                     return false;
+                }
                 _lastFrame = Time.frameCount;
                 return true;
             }

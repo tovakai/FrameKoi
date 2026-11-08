@@ -202,20 +202,38 @@ namespace KK_VR.Controls
 
         internal static bool Digital(string name)
         {
-            ulong handle;
-            if (!Poll() || !ActionHandle(name, out handle)) return false;
-            var state = new DigitalState();
-            return _api.GetDigital(handle, ref state, (uint)Marshal.SizeOf(typeof(DigitalState)), 0) == 0
-                && state.active && state.state;
+            try
+            {
+                ulong handle;
+                if (!Poll() || !ActionHandle(name, out handle)) return false;
+                var state = new DigitalState();
+                return _api.GetDigital(handle, ref state, (uint)Marshal.SizeOf(typeof(DigitalState)), 0) == 0
+                    && state.active && state.state;
+            }
+            catch (Exception ex)
+            {
+                VRLog.Warn("FrameKoi native digital read failed: " + ex.Message);
+                _ready = false;
+                return false;
+            }
         }
 
         internal static Vector2 Analog(string name)
         {
-            ulong handle;
-            if (!Poll() || !ActionHandle(name, out handle)) return Vector2.zero;
-            var state = new AnalogState();
-            return _api.GetAnalog(handle, ref state, (uint)Marshal.SizeOf(typeof(AnalogState)), 0) == 0
-                && state.active ? new Vector2(state.x, state.y) : Vector2.zero;
+            try
+            {
+                ulong handle;
+                if (!Poll() || !ActionHandle(name, out handle)) return Vector2.zero;
+                var state = new AnalogState();
+                return _api.GetAnalog(handle, ref state, (uint)Marshal.SizeOf(typeof(AnalogState)), 0) == 0
+                    && state.active ? new Vector2(state.x, state.y) : Vector2.zero;
+            }
+            catch (Exception ex)
+            {
+                VRLog.Warn("FrameKoi native analog read failed: " + ex.Message);
+                _ready = false;
+                return Vector2.zero;
+            }
         }
 
         internal static void Reset()

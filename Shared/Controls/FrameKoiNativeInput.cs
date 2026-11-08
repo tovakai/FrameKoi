@@ -11,7 +11,8 @@ namespace KK_VR.Controls
     /// Experimental SteamVR Input bridge for modern Frame controllers.
     /// Self-contained because the VRGIN-bundled OpenVR C# wrapper predates IVRInput.
     /// Not enabled by default; requires a manifest installed on disk and a call to Initialize.
-    /// Does not replace legacy input polling until the gameplay dispatcher is migrated.
+    /// GameplayTool dispatches these actions when enabled; legacy controls remain
+    /// available if initialization fails or native input is disabled.
     /// </summary>
     internal static class FrameKoiNativeInput
     {
@@ -151,7 +152,7 @@ namespace KK_VR.Controls
                     return false;
                 }
                 _ready = true;
-                VRLog.Info("FrameKoi native input action set initialized; awaiting dispatcher integration.");
+                VRLog.Info("FrameKoi native input action set initialized; using native controller dispatcher.");
                 return true;
             }
             catch (Exception ex)

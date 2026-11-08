@@ -10,6 +10,7 @@
     <Compile Include="../../Shared/Controls/FrameKoiPoseMath.cs" Link="FrameKoiPoseMath.cs" />
     <Compile Include="../../Shared/Controls/FrameKoiStickMath.cs" Link="FrameKoiStickMath.cs" />
     <Compile Include="../../Shared/Controls/FrameKoiCrouchCamera.cs" Link="FrameKoiCrouchCamera.cs" />
+    <Compile Include="../../Shared/Controls/FrameKoiSemanticActions.cs" Link="FrameKoiSemanticActions.cs" />
     <Compile Include="../../SharedGame/Controls/FrameKoiGamepadLocomotion.cs" Link="FrameKoiGamepadLocomotion.cs" />
     <Compile Include="../../SharedGame/Interpreters/Input/ActionSceneInput.cs" Link="ActionSceneInput.cs" />
     <Compile Include="../../SharedGame/Features/FirstPersonBodyVisibility.cs" Link="FirstPersonBodyVisibility.cs" />

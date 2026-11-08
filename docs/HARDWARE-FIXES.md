@@ -1,3 +1,5 @@
+> Current development controls and installation: [Control profiles](CONTROL-PROFILES.md). Its mappings supersede the historical button layouts below.
+
 # Steam Frame hardware follow-up
 
 Based on controller initialization commit 81ceb041. Settings apply live unless

@@ -55,6 +55,8 @@ namespace UnityEngine
         public Vector3 forward => rotation * Vector3.forward;
         public Vector3 TransformPoint(Vector3 point) => position + rotation*point;
         public Transform Find(string path) => this;
+        public bool IsChildOf(Transform other)
+        { for(var t=this;t!=null;t=t.parent) if(t==other)return true; return false; }
         public void SetPositionAndRotation(Vector3 p,Quaternion r) { position=p; rotation=r; }
         public void SetParent(Transform value,bool worldPositionStays)
         {
@@ -95,6 +97,12 @@ namespace UnityEngine
         public static Quaternion AngleAxis(float degrees,Vector3 axis) => new Quaternion
         { q = System.Numerics.Quaternion.CreateFromAxisAngle(new System.Numerics.Vector3(axis.x,axis.y,axis.z),degrees*(float)Math.PI/180) };
         public static Quaternion Inverse(Quaternion v) => new Quaternion { q=System.Numerics.Quaternion.Inverse(v.q) };
+        public static Quaternion LookRotation(Vector3 forward,Vector3 up)
+        {
+            var f=forward.normalized; var right=Vector3.Cross(up,f).normalized; var u=Vector3.Cross(f,right);
+            var m=new System.Numerics.Matrix4x4(right.x,right.y,right.z,0,u.x,u.y,u.z,0,f.x,f.y,f.z,0,0,0,0,1);
+            return new Quaternion {q=System.Numerics.Quaternion.CreateFromRotationMatrix(m)};
+        }
         public static Quaternion operator *(Quaternion a,Quaternion b) => new Quaternion { q=a.q*b.q };
         public static Vector3 operator *(Quaternion a,Vector3 v)
         { var r=System.Numerics.Vector3.Transform(new System.Numerics.Vector3(v.x,v.y,v.z),a.q); return new Vector3(r.X,r.Y,r.Z); }
@@ -108,6 +116,8 @@ namespace UnityEngine
         public static float Clamp01(float v)=>Clamp(v,0,1);
         public static float MoveTowards(float current,float target,float step) => Math.Abs(target-current)<=step ? target : current+Math.Sign(target-current)*step;
         public static float Round(float v)=>(float)Math.Round(v);
+        public const float Deg2Rad=(float)Math.PI/180;
+        public static float Tan(float v)=>(float)Math.Tan(v);
     }
     public class Renderer : Component { public bool enabled = true; }
     public class SkinnedMeshRenderer : Renderer { public Transform[] bones = new Transform[0]; }
@@ -175,6 +185,12 @@ namespace KK_VR.Settings
         public static Setting FrameKoiButtonCrouchCamera = new Setting { Value=true };
         public static ValueSetting<float> FrameKoiPointerRange = new ValueSetting<float>(5f);
         public static ValueSetting<Vector3> FrameKoiPointerRotation = new ValueSetting<Vector3>(Vector3.zero);
+        public static Setting FrameKoiCompatibilityInput = new Setting { Value=true };
+        public static ValueSetting<float> FrameKoiDialogueDistance=new ValueSetting<float>(1.75f);
+        public static ValueSetting<float> FrameKoiDialogueSideAngle=new ValueSetting<float>(25f);
+        public static ValueSetting<float> FrameKoiDialogueVertical=new ValueSetting<float>(-0.2f);
+        public static ValueSetting<float> FrameKoiDialogueHeight=new ValueSetting<float>(0.65f);
+        public static ValueSetting<float> FrameKoiHudAngle=new ValueSetting<float>(90f);
         public static ValueSetting<PlayerBodyMode> FrameKoiPlayerBody = new ValueSetting<PlayerBodyMode>(PlayerBodyMode.HideBody);
     }
     public static class GameSettings

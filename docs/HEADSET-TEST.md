@@ -1,3 +1,5 @@
+> Current development controls and installation: [Control profiles](CONTROL-PROFILES.md). Its mappings supersede the historical button layouts below.
+
 # FrameKoi Steam Frame headset smoke test
 
 > **Current status:** Controller initialization and basic native actions were reported working on Steam Frame at 81ceb041. The new calibration, body visibility, locomotion and state fixes still require hardware testing. Native mode remains opt-in.

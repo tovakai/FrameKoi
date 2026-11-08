@@ -47,22 +47,44 @@ namespace UnityEngine
 }
 namespace UnityEngine.UI
 {
+    public class GraphicRaycaster : Component { }
     public class Selectable : Component
     {
         public bool interactable=true;
         public bool IsActive()=>gameObject.activeInHierarchy;
         public bool IsInteractable()=>interactable;
+        public void Select() { EventSystems.EventSystem.current?.SetSelectedGameObject(gameObject); }
     }
 }
 namespace UnityEngine.EventSystems
 {
-    public class EventSystem { public static EventSystem current; public GameObject currentSelectedGameObject; }
+    public class EventSystem
+    {
+        public static EventSystem current; public GameObject currentSelectedGameObject;
+        public readonly List<RaycastResult> Results=new List<RaycastResult>();
+        public void RaycastAll(PointerEventData data,List<RaycastResult> results) { results.AddRange(Results); }
+        public void SetSelectedGameObject(GameObject go) { currentSelectedGameObject=go; }
+    }
+    public interface IPointerClickHandler { }
+    public class PointerEventData : BaseEventData
+    {
+        public enum InputButton { Left }
+        public Vector2 position; public InputButton button; public int pointerId;
+        public PointerEventData(EventSystem system):base(system) { }
+    }
+    public struct RaycastResult { public GameObject gameObject; public object module; public int sortingOrder,depth; }
     public class BaseEventData { public BaseEventData(EventSystem system) { } }
     public static class ExecuteEvents
     {
         public static object submitHandler=new object();
+        public static object pointerDownHandler=new object(),pointerUpHandler=new object(),pointerClickHandler=new object();
+        public static int Downs,Ups,Clicks;
         public static int Submissions;
-        public static bool Execute(GameObject target,BaseEventData data,object handler) { Submissions++; return true; }
+        public static bool Execute(GameObject target,BaseEventData data,object handler)
+        { if(handler==pointerUpHandler)Ups++;else if(handler==pointerClickHandler)Clicks++;else Submissions++;return true; }
+        public static GameObject ExecuteHierarchy(GameObject target,BaseEventData data,object handler)
+        { if(handler==pointerDownHandler)Downs++; return target; }
+        public static GameObject GetEventHandler<T>(GameObject target)=>target;
     }
 }
 public class SteamVR
@@ -86,7 +108,18 @@ namespace VRGIN.Native
 }
 namespace VRGIN.Visuals
 {
-    public class GUIQuad : Component { public bool IsOwned; }
+    public class GUIQuad : Component
+    {
+        public bool IsOwned;
+        public string name {get=>gameObject.name;set=>gameObject.name=value;}
+        public static GUIQuad Last;
+        public static GUIQuad Create()
+        {
+            var go=new GameObject("quad");var quad=go.AddComponent<GUIQuad>();
+            go.AddComponent<Collider>();go.AddComponent<Renderer>();GUIQuadRegistry.Quads.Add(quad);Last=quad;return quad;
+        }
+        public void UpdateAspect() { var h=transform.localScale.y;transform.localScale=new Vector3(h*Screen.width/Screen.height,h,1); }
+    }
     public static class GUIQuadRegistry { public static readonly List<GUIQuad> Quads=new List<GUIQuad>(); }
 }
 namespace KK_VR.Controls

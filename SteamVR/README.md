@@ -1,3 +1,5 @@
+> Current development controls and installation: [Control profiles](../docs/CONTROL-PROFILES.md). Its mappings supersede the historical button layouts below.
+
 # Steam Frame native input
 
 Native SteamVR actions are opt-in. Keep the working native-input configuration

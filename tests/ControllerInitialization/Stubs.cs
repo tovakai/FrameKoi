@@ -13,6 +13,7 @@ namespace UnityEngine
         public int GetInstanceID() => GetHashCode();
         public static implicit operator bool(Object value) => value != null;
         public static void Destroy(Object value) { }
+        public static void DontDestroyOnLoad(Object value) { }
     }
     public class Texture2D : Object { }
     public struct Vector2
@@ -173,6 +174,8 @@ namespace KK_VR.Interpreters
         public bool IsBusy;
         public int UIConfirms;
         internal virtual bool ConfirmUI() { UIConfirms++; return true; }
+        internal virtual bool NavigateUI(int x,int y) => false;
+        internal virtual void SetSceneMovement(Vector2 axis) { }
         public List<string> Events = new List<string>();
         public Vector2 LeftStick;
         public float RightStick;
@@ -217,6 +220,7 @@ namespace KK_VR.Controls
         public KoikMenuTool(Controller owner) { Created++; }
         public static void ToggleState() { Toggles++; }
         public void AbandonGUI() { }
+        public static void SuppressLegacyPanel() { }
     }
 #if !REAL_MENU
     public class KoikMenuHandler

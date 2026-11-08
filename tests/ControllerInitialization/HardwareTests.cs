@@ -209,7 +209,7 @@ static class HardwareTests
         check(!FrameKoiGamepadLocomotion.Available && !FrameKoiGamepadLocomotion.Enabled,
             "unknown mover pattern fails closed even after a previous successful install");
         input.OnButtonDown(0,Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger,TrackpadDirection.Center);
-        check(VR.Input.Mouse.Left,"legacy trigger walking remains available on hook mismatch");
+        check(!VR.Input.Mouse.Left,"native trigger cannot restore walking on hook mismatch");
         input.OnButtonUp(0,Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger,TrackpadDirection.Center);
         check(!VR.Input.Mouse.Left,"legacy fallback releases synthetic walking input");
         input.OnDisable();

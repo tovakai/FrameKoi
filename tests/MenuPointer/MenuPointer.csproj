@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Shared/Controls/KoikMenuHandler.cs" Link="KoikMenuHandler.cs" />
+    <Compile Include="../../Shared/Controls/FrameKoiSemanticActions.cs" Link="FrameKoiSemanticActions.cs" />
     <Compile Include="../ControllerInitialization/Stubs.cs" Link="Stubs.cs" />
     <Compile Include="../ControllerInitialization/RuntimeStubs.cs" Link="RuntimeStubs.cs" />
   </ItemGroup>

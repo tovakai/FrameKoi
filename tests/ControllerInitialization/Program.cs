@@ -7,6 +7,7 @@ using KK_VR.Controls;
 using KK_VR.Holders;
 using KK_VR.Interpreters;
 using UnityEngine;
+using Valve.VR;
 using VRGIN.Core;
 
 sealed class TestTool : GameplayTool
@@ -94,106 +95,97 @@ static class Program
         Time.unscaledTime += 0.02f;
         foreach (var tool in tools) tool.Tick();
     }
+    sealed class SimulatedRuntime : IFrameKoiInputRuntime, IFrameKoiActionSink
+    {
+        internal bool Menu;
+        internal int Interactions, Confirms;
+        readonly FrameKoiContextRouter router;
+        readonly KoikMenuHandler[] pointers=new KoikMenuHandler[2];
+        internal SimulatedRuntime() { router=new FrameKoiContextRouter(this,FrameKoiBindings.Defaults()); }
+        void Sync() { router.Change(new FrameKoiContext { Profile=Menu?FrameKoiProfile.DialogueMenu:FrameKoiProfile.Roaming, Owner=KoikGameInterp.SceneInput }); }
+        public void TickHand(int hand,KoikMenuHandler pointer)
+        {
+            pointers[hand]=pointer; Sync();
+            if(!FrameKoiNativeInput.Poll()) { router.Reset();return; }
+            foreach(var name in Names.Values)
+            {
+                bool belongs=hand==0 ? name.StartsWith("left_")||name.StartsWith("dpad_") : name.StartsWith("right_")||name.Length==1;
+                if(belongs && !name.EndsWith("_stick")) router.Sample(hand,name,FrameKoiNativeInput.Digital(name));
+            }
+            var scene=KoikGameInterp.SceneInput;
+            var axis=FrameKoiNativeInput.Analog(hand==0?"left_stick":"right_stick");
+            if(hand==0) scene.SetFrameKoiLeftStick(Menu?Vector2.zero:axis);
+            else scene.SetFrameKoiRightStick(Menu?0:axis.x);
+        }
+        public void Disconnect(int hand) { router.Disconnect(hand); }
+        public void Neutralize(FrameKoiContext previous)
+        {
+            var scene=previous?.Owner as SceneInput;
+            scene?.SetFrameKoiLeftStick(Vector2.zero);scene?.SetFrameKoiRightStick(0);
+        }
+        public Action Begin(FrameKoiAction action,int hand,FrameKoiContext context)
+        {
+            var scene=(SceneInput)context.Owner;
+            if(action==FrameKoiAction.Grab||action==FrameKoiAction.HandAction)
+            {
+                var button=action==FrameKoiAction.Grab?EVRButtonId.k_EButton_Grip:EVRButtonId.k_EButton_SteamVR_Trigger;
+                scene.OnButtonDown(hand,button,VRGIN.Controls.Controller.TrackpadDirection.Center);
+                return ()=>scene.OnButtonUp(hand,button,VRGIN.Controls.Controller.TrackpadDirection.Center);
+            }
+            if(action==FrameKoiAction.SelectUI && pointers[hand].CheckMenu())
+            { pointers[hand].OnTrigger(true);return ()=>pointers[hand].OnTrigger(false); }
+            if(action==FrameKoiAction.Interact) Interactions++;
+            if(action==FrameKoiAction.Confirm) Confirms++;
+            return null;
+        }
+    }
     static void Main()
     {
-        FrameKoiNativeInput.ValidateAbi();
-        InstallApi();
-        VR.Mode.Left = new VRGIN.Controls.Controller();
-        VR.Mode.Right = new VRGIN.Controls.Controller();
-        // Deliberately unrelated to hand indices.
-        VR.Mode.Left.Tracking.index = 7;
-        VR.Mode.Right.Tracking.index = 3;
-        var left = new TestTool();
-        var right = new TestTool();
-        left.OnRenderModelLoaded(); // callback before Tool.OnStart must be harmless
-        left.Start(VR.Mode.Left);
-        right.Start(VR.Mode.Right); // no render callback at all
-        Check(left.enabled && right.enabled, "tools must remain enabled after startup");
-        Check(KoikMenuHandler.Created == 2 && KoikMenuTool.Created == 2, "one menu/handler per owner");
-        Next(left, right);
-        Check(Polls == 1, "both hands update the native action set once per frame");
-        Pressed.Add("left_view");
-        Pressed.Add("right_menu");
-        Next(left, right);
-        Check(KoikMenuTool.Toggles == 2, "both menus dispatch without hand models or render callbacks");
-        Next(left, right);
-        Check(KoikMenuTool.Toggles == 2, "held buttons must not repeat down");
-        Pressed.Clear();
-        Next(left, right);
-
-        HandHolder.GetHands.Add(new HandHolder());
-        HandHolder.GetHands.Add(new HandHolder());
-        var old = KoikGameInterp.SceneInput;
-        Pressed.Add("left_grip");
-        Pressed.Add("right_trigger");
-        X = 0.7f; Y = -0.4f;
-        Next(left, right);
-        Check(old.Events.Contains("down:0:k_EButton_Grip"), "left ownership follows controller role");
-        Check(old.Events.Contains("down:1:k_EButton_SteamVR_Trigger"), "right ownership follows controller role");
-        Check(old.LeftStick.y == Y && old.RightStick == X, "analog dispatch");
-        Check(!left.IsGrip && !right.IsGrip, "native grips never create GripMove");
-
-        // Same order as the production StartScene teardown hook.
-        left.ReleaseInput(); right.ReleaseInput();
-        Check(old.Events.Contains("up:0:k_EButton_Grip") && old.Events.Contains("up:1:k_EButton_SteamVR_Trigger"),
-            "scene teardown pairs releases with old scene");
-        Check(old.LeftStick.x == 0 && old.RightStick == 0, "scene teardown clears axes");
-        var current = KoikGameInterp.SceneInput = new SceneInput();
-        Next(left, right);
-        Check(current.Events.Contains("down:0:k_EButton_Grip"), "held input enters new scene consistently");
-
-        Pressed.Add("b"); Pressed.Add("a"); Pressed.Add("x");
-        Next(left, right);
-        Check(VR.Input.Keyboard.Escape && !VR.Input.Mouse.Left && VR.Input.Mouse.Right && KoikMenuHandler.Submissions == 1,
-            "A routes to UI submission without injecting a world click");
-        right.Disable();
-        Check(!VR.Input.Keyboard.Escape && !VR.Input.Mouse.Left && !VR.Input.Mouse.Right, "disable flushes desktop releases");
-        right.OnRenderModelLoaded();
-        Check(!right.enabled && KoikMenuHandler.Created == 2, "late callbacks preserve focus and do not duplicate handlers");
-        VR.Mode.Left.Tracking.isValid = false;
-        Next(left);
-        Check(current.Events.Contains("up:0:k_EButton_Grip") && current.LeftStick.x == 0, "disconnect releases input");
-        VR.Mode.Left.Tracking.isValid = true;
-        Active = false;
-        Next(left);
-        Check(!FrameKoiNativeInput.Digital("left_grip") && FrameKoiNativeInput.Analog("left_stick").x == 0, "inactive actions produce no input");
-        Active = true;
-        ReadError = 4;
-        Check(!FrameKoiNativeInput.Digital("left_grip") && FrameKoiNativeInput.Analog("left_stick").x == 0, "read errors produce no input");
-        ReadError = 0;
-        UpdateError = 1;
-        Next(left);
-        Check(!FrameKoiNativeInput.Ready, "polling failure enables legacy fallback");
-        Next(left); // exercise legacy update without any render callback
-        left.DestroyTool(); right.DestroyTool();
-        FrameKoiNativeInput.Reset();
-        Check(!FrameKoiNativeInput.Ready && !FrameKoiNativeInput.Poll(), "reset is safe");
-        Check(!FrameKoiNativeInput.Initialize("missing-actions.json"), "missing manifest preserves fallback");
-        InstallApi();
-        UpdateError = 0; ReadError = 0; Active = true; Pressed.Clear();
-        var menuTool = new TestTool();
-        menuTool.Start(VR.Mode.Right);
-        KoikMenuHandler.MenuInRange = true;
-        ((KoikMenuTool)typeof(GameplayTool).GetField("_menu", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(menuTool)).IsAttached = true;
-        KoikGameInterp.SceneInput.IsBusy = true;
-        HandHolder.GetHand(1).Handler = new KK_VR.Holders.Handler { IsBusy = true };
-        Pressed.Add("a");
-        Next(menuTool);
-        Check(VR.Input.Mouse.Left, "menu-owning hand can confirm UI despite nearby character/busy scene");
-        Pressed.Clear();
-        Next(menuTool);
-        Check(!VR.Input.Mouse.Left, "targeted-menu click releases cleanly");
-        KoikMenuHandler.MenuInRange = false;
-        menuTool.DestroyTool();
-        KoikGameInterp.SceneInput.IsBusy = false;
-        HandHolder.GetHand(1).Handler = null;
-        HardwareTests.Run(Check);
-        FrameKoiInputDiagnostics.Reset();
-        VRLog.Messages.Clear();
-        for (int i = 0; i < 1000; i++) FrameKoiInputDiagnostics.Log("same", "repeat");
-        Check(VRLog.Messages.Count == 3, "per-event diagnostics are bounded");
-        for (int i = 0; i < 1000; i++) FrameKoiInputDiagnostics.Log("event-" + i, "event");
-        Check(VRLog.Messages.Count == 301, "session diagnostics are bounded");
-        Console.WriteLine($"PASS: {_assertions} assertions, real GameplayTool/native bridge, simulated runtime. No hardware validation.");
+        FrameKoiNativeInput.ValidateAbi(); InstallApi();
+        var runtime=new SimulatedRuntime(); FrameKoiInputRuntime.Current=runtime;
+        VR.Mode.Left=new VRGIN.Controls.Controller(); VR.Mode.Right=new VRGIN.Controls.Controller();
+        VR.Mode.Left.Tracking.index=7;VR.Mode.Right.Tracking.index=3;
+        HandHolder.GetHands.Add(new HandHolder());HandHolder.GetHands.Add(new HandHolder());
+        var left=new TestTool();var right=new TestTool();
+        left.OnRenderModelLoaded();left.Start(VR.Mode.Left);right.Start(VR.Mode.Right);
+        Check(left.enabled&&right.enabled,"render model is not required for native tool activation");
+        Next(left,right); Check(Polls==1,"one native action update per frame for both hands");
+        var old=KoikGameInterp.SceneInput;
+        Pressed.Add("left_grip");Pressed.Add("right_trigger");X=0.7f;Y=-0.4f;
+        Next(left,right);
+        Check(old.Events.Contains("down:0:k_EButton_Grip") && old.Events.Contains("down:1:k_EButton_SteamVR_Trigger"),"semantic hand ownership follows roles, not device indices");
+        Check(old.LeftStick.y==Y&&old.RightStick==X,"analog transport remains independent");
+        Check(!left.IsGrip&&!right.IsGrip,"native grips never create world dragging");
+        var current=KoikGameInterp.SceneInput=new SceneInput();Next(left,right);
+        Check(old.Events.Contains("up:0:k_EButton_Grip"),"scene change releases into original scene");
+        Check(!current.Events.Contains("down:0:k_EButton_Grip"),"held grip cannot become a new scene press");
+        Pressed.Clear();Next(left,right);Pressed.Add("left_grip");Next(left,right);
+        Check(current.Events.Contains("down:0:k_EButton_Grip"),"release rearms grip after context transition");
+        Pressed.Clear();runtime.Menu=true;Next(left,right);KoikMenuHandler.MenuInRange=true;
+        Pressed.Add("right_bumper");Next(left,right);
+        Check(VR.Input.Mouse.Left&&!current.Events.Contains("down:1:k_EButton_SteamVR_Touchpad"),"bumper selects UI without cycling tools");
+        Pressed.Clear();Next(left,right);Check(!VR.Input.Mouse.Left,"bumper release pairs UI click");
+        Pressed.Add("a");Next(left,right);Check(runtime.Confirms==1&&!VR.Input.Mouse.Left,"menu A is semantic confirmation, not a world click");
+        runtime.Menu=false;Next(left,right);Check(runtime.Interactions==0,"held confirm cannot leak into roaming interaction");
+        Pressed.Clear();Next(left,right);Pressed.Add("a");Next(left,right);Check(runtime.Interactions==1,"fresh roaming A interacts");
+        Pressed.Clear();Next(left,right);Pressed.Add("left_grip");Next(left,right);
+        var count=current.Events.Count;VR.Mode.Left.Tracking.isValid=false;Next(left);
+        Check(current.Events.Count==count+1,"tracking loss releases held hand action");
+        VR.Mode.Left.Tracking.isValid=true;Next(left);Check(current.Events.Count==count+1,"held reconnect input stays quarantined");
+        right.Disable();right.OnRenderModelLoaded();Check(!right.enabled,"late render callback cannot steal controller focus");
+        Active=false;Next(left);Check(!FrameKoiNativeInput.Digital("left_grip")&&FrameKoiNativeInput.Analog("left_stick").x==0,"inactive native actions are neutral");
+        Active=true;ReadError=4;Check(!FrameKoiNativeInput.Digital("left_grip"),"native read errors are neutral");ReadError=0;
+        UpdateError=1;Next(left);Check(!FrameKoiNativeInput.Ready,"poll error disables native bridge");
+        left.DestroyTool();right.DestroyTool();FrameKoiInputRuntime.Current=null;
+        FrameKoiNativeInput.Reset();Check(!FrameKoiNativeInput.Ready&&!FrameKoiNativeInput.Poll(),"native reset is safe");
+        Check(!FrameKoiNativeInput.Initialize("missing-actions.json"),"missing manifest retains legacy compatibility");
+        InstallApi();UpdateError=0;ReadError=0;Active=true;Pressed.Clear();
+        FrameKoiInputRuntime.RoamingAllowed=true;HardwareTests.Run(Check);
+        FrameKoiInputDiagnostics.Reset();VRLog.Messages.Clear();
+        for(int i=0;i<1000;i++)FrameKoiInputDiagnostics.Log("same","repeat");
+        Check(VRLog.Messages.Count==3,"per-event diagnostic limit");
+        for(int i=0;i<1000;i++)FrameKoiInputDiagnostics.Log("event-"+i,"event");
+        Check(VRLog.Messages.Count==301,"session diagnostic limit");
+        Console.WriteLine($"PASS: {_assertions} assertions, native bridge/semantic transport/game movement simulations. No hardware validation.");
     }
 }

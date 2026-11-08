@@ -1,6 +1,8 @@
 # FrameKoi Steam Frame headset smoke test
 
-> **Current status:** Source input mapping complete; hardware compatibility is NOT yet confirmed. Native mode is experimental and off by default. Do not mistake this for a released or validated mod.
+> **Current status:** Controller initialization and basic native actions were reported working on Steam Frame at 81ceb041. The new calibration, body visibility, locomotion and state fixes still require hardware testing. Native mode remains opt-in.
+
+See [hardware follow-up settings, installation and checklist](HARDWARE-FIXES.md).
 
 ## Build/install prerequisites
 
@@ -22,7 +24,7 @@ for a fresh capture. See [controller initialization](CONTROLLER-INITIALIZATION.m
 
 | Control | Expected initial native behavior | Pass / Fail |
 | --- | --- | --- |
-| Left stick | Independent analog axes; optional experimental roaming movement | |
+| Left stick | Analog roaming through the game's mover/NavMeshAgent when the guarded hook installs | |
 | Right stick | Analog smooth yaw; optional snap/off | |
 | Left stick click | Toggle dash while already walking | |
 | Right stick click | Upright/recenter orientation helper | |
@@ -38,7 +40,7 @@ for a fresh capture. See [controller initialization](CONTROLLER-INITIALIZATION.m
 | D-pad Right | Right directional scene action | |
 | Left View | Toggle floating menu | |
 | Right Menu | Toggle floating menu | |
-| A | Confirm / primary click (menu laser if available) | |
+| A | Confirm targeted/selected UI; no unrestricted world click | |
 | B | Back / Escape | |
 | X | Secondary / right mouse click | |
 | Y | Toggle floating menu | |

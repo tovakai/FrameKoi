@@ -38,7 +38,7 @@ hides the original body instead. It never edits shared meshes or bone scales.
 This feature applies to the roaming protagonist only, with native input
 enabled. Existing face/head concealment and event-scene POV remain unchanged.
 Renderer enabled states are captured at headset PreCull and restored at
-PostRender, with recovery on LateUpdate/disable. Spectator cameras see the
+PostRender, with recovery on LateUpdate/disable. Separate spectator cameras see the
 original states, including nested camera rendering. Initially disabled
 renderers remain disabled. Character/scene/config changes refresh selection.
 The tracked hand models are outside the protagonist hierarchy and are never
@@ -96,7 +96,8 @@ release the previous handler's temporary interaction, restore visible/collidable
 item state, and start with a clean set of animation weights. A layer transition
 is canceled before switching items or starting another transition; its coroutine
 captures its owning item and cannot write a layer index into the next item.
-Cycling during an active grip/grasp is deferred until the grip is released.
+Cycling during an active grip/grasp is ignored; release the grip and press the
+bumper again to cycle.
 H-scene handler disable now ends manual item movement and restores hidden
 hand rendering, in addition to releasing temporary trigger clicks.
 

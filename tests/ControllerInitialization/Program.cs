@@ -171,6 +171,17 @@ static class Program
         Check(!FrameKoiNativeInput.Initialize("missing-actions.json"), "missing manifest preserves fallback");
         InstallApi();
         UpdateError = 0; ReadError = 0; Active = true; Pressed.Clear();
+        var menuTool = new TestTool();
+        menuTool.Start(VR.Mode.Right);
+        KoikMenuHandler.MenuInRange = true;
+        Pressed.Add("a");
+        Next(menuTool);
+        Check(VR.Input.Mouse.Left, "A retains targeted-menu click behavior");
+        Pressed.Clear();
+        Next(menuTool);
+        Check(!VR.Input.Mouse.Left, "targeted-menu click releases cleanly");
+        KoikMenuHandler.MenuInRange = false;
+        menuTool.DestroyTool();
         HardwareTests.Run(Check);
         FrameKoiInputDiagnostics.Reset();
         VRLog.Messages.Clear();

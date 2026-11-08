@@ -28,6 +28,7 @@ namespace KK_VR.Controls
         private float _nextAxisDiagnosticAt;
         private readonly HashSet<string> _nativeHeld = new HashSet<string>();
         private bool _nativeTriggerMenuHeld;
+        private bool _nativeAOnMenu;
         private static readonly string[] LeftNativeButtons =
         {
             "left_grip", "left_trigger", "left_stick_click", "left_bumper",
@@ -140,6 +141,15 @@ namespace KK_VR.Controls
             foreach (var name in held)
                 OnNativeButton(name, false);
             _nativeTriggerMenuHeld = false;
+            _nativeAOnMenu = false;
+        }
+
+        private bool NativeMenuInteractable()
+        {
+            if (_menu.IsAttached || !_menuHandler.CheckMenu()) return false;
+            var scene = KoikGameInterp.SceneInput;
+            var handler = HandHolder.GetHand(_index).Handler;
+            return scene != null && !scene.IsBusy && (handler == null || !handler.IsBusy);
         }
 
         private void OnNativeButton(string name, bool down)
@@ -160,7 +170,7 @@ namespace KK_VR.Controls
                 case "right_trigger":
                     if (down)
                     {
-                        _nativeTriggerMenuHeld = !_menu.IsAttached && _menuHandler.CheckMenu();
+                        _nativeTriggerMenuHeld = NativeMenuInteractable();
                         if (_nativeTriggerMenuHeld)
                             _menuHandler.OnTrigger(true);
                         else
@@ -205,8 +215,18 @@ namespace KK_VR.Controls
                     else scene.OnDirectionUp(_index, direction);
                     break;
                 case "a":
-                    if (down) VR.Input.Mouse.LeftButtonDown();
-                    else VR.Input.Mouse.LeftButtonUp();
+                    if (down)
+                    {
+                        _nativeAOnMenu = NativeMenuInteractable();
+                        if (_nativeAOnMenu) _menuHandler.OnTrigger(true);
+                        else VR.Input.Mouse.LeftButtonDown();
+                    }
+                    else
+                    {
+                        if (_nativeAOnMenu) _menuHandler.OnTrigger(false);
+                        else VR.Input.Mouse.LeftButtonUp();
+                        _nativeAOnMenu = false;
+                    }
                     break;
                 case "b":
                     if (down) VR.Input.Keyboard.KeyDown(VirtualKeyCode.ESCAPE);

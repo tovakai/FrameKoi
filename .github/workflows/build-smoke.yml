@@ -45,8 +45,10 @@ jobs:
           $document.Save((Resolve-Path $project).Path)
       - name: Build Sunshine main-game plugin
         run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal
+      - name: Configure full Visual Studio MSBuild for legacy VRGIN
+        uses: microsoft/setup-msbuild@v2
       - name: Build Koikatsu main-game plugin
-        run: dotnet build KK_VR/KK_Game.csproj --configuration Release --verbosity minimal
+        run: msbuild KK_VR/KK_Game.csproj -restore -p:Configuration=Release -verbosity:minimal
       - name: Upload compiled FrameKoi test binaries
         uses: actions/upload-artifact@v4
         with:

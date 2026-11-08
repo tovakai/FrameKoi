@@ -94,6 +94,12 @@ namespace KK_VR.Interpreters
             return Timing.Fraction;
         }
 
+        // Optional analog action hook. Roaming overrides it; other scenes ignore it.
+        // Keeps Shared controller code independent of SharedGame scene classes.
+        internal virtual void SetFrameKoiRightStick(float x)
+        {
+        }
+
         internal virtual void HandleInput()
         {
             foreach (var wait in _waitList)

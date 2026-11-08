@@ -83,6 +83,8 @@ namespace KK_VR.Settings
             Off
         }
 
+        public enum HandCalibrationMode { AutoFrame, AllControllers, Disabled }
+
         public enum PovAttachmentBones
         {
             Eyes,
@@ -112,6 +114,9 @@ namespace KK_VR.Settings
         public static ConfigEntry<ShadowType> ShadowSetting { get; private set; }
         public static ConfigEntry<Vector3> ModelRotation { get; private set; }
         public static ConfigEntry<Vector3> ModelPosition { get; private set; }
+        public static ConfigEntry<HandCalibrationMode> FrameKoiHandCalibration { get; private set; }
+        public static ConfigEntry<Vector3> FrameKoiLeftHandRotation { get; private set; }
+        public static ConfigEntry<Vector3> FrameKoiRightHandRotation { get; private set; }
         public static ConfigEntry<bool> StaticDirectionalLight { get; private set; }
 
         #endregion
@@ -333,6 +338,13 @@ namespace KK_VR.Settings
                     "",
                     null,
                     new ConfigurationManagerAttributes { Order = -30 }));
+
+            FrameKoiHandCalibration = config.Bind(SectionGeneral, "FrameKoi hand calibration", HandCalibrationMode.AutoFrame,
+                "AutoFrame applies only when OpenVR reports frame_controller. AllControllers forces the calibration; Disabled preserves the original pose. Changes apply live.");
+            FrameKoiLeftHandRotation = config.Bind(SectionGeneral, "FrameKoi left hand rotation", new Vector3(-90f, 0f, 0f),
+                "Controller-local XYZ degrees, applied to the complete hand anchor including interaction colliders. Independent of the right hand; no automatic mirroring. Initial Frame correction requires headset calibration.");
+            FrameKoiRightHandRotation = config.Bind(SectionGeneral, "FrameKoi right hand rotation", new Vector3(-90f, 0f, 0f),
+                "Controller-local XYZ degrees for the right hand. Try each axis independently; restore zero on the other axes while calibrating.");
 
 
             EnableBoop = config.Bind(SectionGeneral, "Enable Boop", true,
@@ -642,6 +654,9 @@ namespace KK_VR.Settings
             PrivacyScreen.SettingChanged += (sender, e) => Features.PrivacyScreen.UpdatePrivacyScreen();
             ModelPosition.SettingChanged += (sender, e) => HandHolder.UpdateOffsets();
             ModelRotation.SettingChanged += (sender, e) => HandHolder.UpdateOffsets();
+            FrameKoiHandCalibration.SettingChanged += (sender, e) => HandHolder.UpdateOffsets();
+            FrameKoiLeftHandRotation.SettingChanged += (sender, e) => HandHolder.UpdateOffsets();
+            FrameKoiRightHandRotation.SettingChanged += (sender, e) => HandHolder.UpdateOffsets();
             IKEnable.SettingChanged += (sender, e) => UpdateIKEnable();
 
             UpdateIPD();
@@ -757,3 +772,4 @@ namespace KK_VR.Settings
         }
     }
 }
+

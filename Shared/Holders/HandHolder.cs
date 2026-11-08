@@ -11,6 +11,8 @@ using KK_VR.Controls;
 using KK_VR.Handlers;
 using KK_VR.Grasp;
 using KK_VR.Settings;
+using Valve.VR;
+using System.Text;
 
 namespace KK_VR.Holders
 {
@@ -23,6 +25,9 @@ namespace KK_VR.Holders
         private readonly List<ItemType> _itemList = [];
         private Transform _controller;
         private ItemLag _itemLag;
+        private Vector3 _handCalibration;
+        private float _nextCalibrationProbe;
+        private Quaternion CalibratedRotation => FrameKoiPoseMath.HandRotation(_controller.rotation, _handCalibration);
         private bool _parent;
         internal bool IsParent => _parent;
         private SFXLoader _handSFX;
@@ -302,15 +307,44 @@ namespace KK_VR.Holders
         }
         private void UpdateActiveOffsets()
         {
+            UpdateCalibration();
             var posVec = KoikSettings.ModelPosition.Value;
             var rotVec = KoikSettings.ModelRotation.Value;
             _activeOffsetPos = _activeItem.animParam.positionOffset + (Index == 0 ? new Vector3(-posVec.x, posVec.y, posVec.z) : posVec);
             _activeOffsetRot = _activeItem.animParam.rotationOffset * Quaternion.Euler((Index == 0 ? new Vector3(rotVec.x, -rotVec.y, -rotVec.z) : rotVec));
         }
+
+        private void UpdateCalibration()
+        {
+            _nextCalibrationProbe = Time.unscaledTime + 2f;
+            var mode = KoikSettings.FrameKoiHandCalibration.Value;
+            var apply = mode == KoikSettings.HandCalibrationMode.AllControllers;
+            if (mode == KoikSettings.HandCalibrationMode.AutoFrame && Controller.Tracking != null && OpenVR.System != null)
+            {
+#if KK
+                var device = (int)Controller.Tracking.index;
+#else
+                var device = Controller.Tracking.GetDeviceIndex();
+#endif
+                if (device >= 0)
+                {
+                    var value = new StringBuilder(128);
+                    var error = ETrackedPropertyError.TrackedProp_Success;
+                    // Prop_ControllerType_String = 7000, absent from old VRGIN's enum.
+                    OpenVR.System.GetStringTrackedDeviceProperty((uint)device, (ETrackedDeviceProperty)7000,
+                        value, (uint)value.Capacity, ref error);
+                    apply = error == ETrackedPropertyError.TrackedProp_Success && FrameKoiPoseMath.IsFrameController(value.ToString());
+                    FrameKoiInputDiagnostics.Log("hand-profile-" + Index,
+                        $"hand {Index} controller type={value}, calibration={apply}");
+                }
+            }
+            _handCalibration = apply ? (Index == 0 ? KoikSettings.FrameKoiLeftHandRotation.Value :
+                KoikSettings.FrameKoiRightHandRotation.Value) : Vector3.zero;
+        }
         private void ActivateItem()
         {
             UpdateActiveOffsets();
-            _anchor.SetPositionAndRotation(_controller.TransformPoint(_activeOffsetPos), _controller.rotation);
+            _anchor.SetPositionAndRotation(_controller.TransformPoint(_activeOffsetPos), CalibratedRotation);
             _activeItem.rootPoint.localScale = Fixes.Util.Divide(Vector3.Scale(Vector3.one, _activeItem.rootPoint.localScale), _activeItem.rootPoint.lossyScale);
             _activeItem.rootPoint.gameObject.SetActive(true);
             SetStartLayer();
@@ -330,9 +364,10 @@ namespace KK_VR.Holders
         }
         private void LateUpdate()
         {
+            if (Time.unscaledTime >= _nextCalibrationProbe) UpdateCalibration();
             if (_itemLag != null)
             {
-                _itemLag.SetPositionAndRotation(_controller.TransformPoint(_activeOffsetPos), _controller.rotation);
+                _itemLag.SetPositionAndRotation(_controller.TransformPoint(_activeOffsetPos), CalibratedRotation);
             }
             if (_activeItem != null)
             {
@@ -349,7 +384,7 @@ namespace KK_VR.Holders
         {
             if (_itemLag == null)
             {
-                _rigidBody.MoveRotation(_controller.rotation);
+                _rigidBody.MoveRotation(CalibratedRotation);
                 _rigidBody.MovePosition(_controller.TransformPoint(_activeOffsetPos));
             }
         }

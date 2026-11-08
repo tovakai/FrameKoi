@@ -21,10 +21,18 @@ FrameKoi is based on [IllusionMods/KKS_VR](https://github.com/IllusionMods/KKS_V
 - `1. Roaming → FrameKoi right stick deadzone = 0.2` (range 0.05–0.5) suppresses small deviations. Legacy left/right directional turn events are suppressed during roaming when this mode is enabled, preventing double-turns.
 - **Compatibility fallback:** set `FrameKoi right stick turning = false` to restore the existing legacy directional events. The older `Continuous rotation` setting remains for compatibility but FrameKoi turning mode takes precedence.
 
+### Independent analog stick inputs
+- The left and right tracked VRGIN controllers now each pass their own `GetAxis()` to the scene through virtual hooks on `SceneInput`; only roaming acts on them. No SteamVR input-action manifest has been implemented.
+- Right stick controls roaming yaw (if mapped by SteamVR), with a configurable deadzone and smooth/snap/off mode.
+- `1. Roaming → FrameKoi experimental left stick movement` is **OFF by default**. When explicitly enabled, the left stick moves the VR origin in the headset's horizontal facing direction and synchronizes the protagonist through `PlayerToCamera()`. Its speed and radial deadzone are configurable. This direct translation **may bypass collisions, navigation and event triggers**. Do not use it for normal play until validated.
+- In roaming, controllers assigned an analog role no longer send their legacy directional callbacks to scene actions while outside menus; otherwise a stick turn/move could inadvertently crouch, dash or interact.
+- Releasing a trigger no longer resets the analog snap-turn latch: it just releases the old walking input.
+- **Known limitation:** When the stick's analog axis is redirected to a menu, the menu retains legacy direction callbacks. The SteamVR binding still needs validation on actual hardware.
+
 ## Not implemented yet
 
 - Native SteamVR action-manifest bindings. The **right analog stick is now polled independently** through the existing per-controller `GetAxis()` method. Whether SteamVR maps the Frame's intended stick to that axis must be confirmed on the actual headset.
-- Left thumbstick locomotion. Existing roaming movement still uses the upstream game's trigger-held walking; do not mistake right analog yaw for a completed two-stick locomotion implementation.
+- Production-ready left-stick locomotion. The experimental origin translation above is not a collision-safe alternative to the upstream trigger-held walking. Need a verified game movement API or a collision-respecting movement adapter before making it default.
 - Direct A/B/X/Y, shoulder, D-pad, and stick-click bindings. We need to map actual OpenVR / SteamVR input action paths and test with the Steam Frame.
 - Context-specific UI fallback for menu repositioning after reserving the grips for hands.
 - Runtime, compiler, or physical Steam Frame validation. **These edits are committed but untested in-game.**
@@ -33,6 +41,6 @@ FrameKoi is based on [IllusionMods/KKS_VR](https://github.com/IllusionMods/KKS_V
 
 1. Isolate controller sampling behind a `FrameKoiInput` layer instead of the current small direct analog-right-stick bridge, preserving the existing scene handlers.
 2. Add SteamVR action manifest/binding support, handling disconnected/reconnected controllers and press/release state.
-3. Drive movement and analog yaw through separate axis actions; apply deadzones and smooth/snap/off turning policies.
+3. Replace experimental direct-origin locomotion with collision-aware game movement; retain the independent analog axes, deadzones, and turning policies.
 4. Map menu, click, teleports, and scene-specific actions to the spare buttons, with a configuration panel and diagnostics.
 5. Test grabbing independently with both hands, transitions between scenes, and menu proximity.

@@ -125,8 +125,10 @@ namespace KK_VR
                 var manifestPath = KoikSettings.FrameKoiActionManifestPath.Value;
                 if (String.IsNullOrEmpty(manifestPath))
                     manifestPath = System.IO.Path.Combine(
-                        System.IO.Path.GetDirectoryName(typeof(Controls.FrameKoiNativeInput).Assembly.Location),
-                        "SteamVR", "actions.json");
+                        System.IO.Path.Combine(
+                            System.IO.Path.GetDirectoryName(typeof(Controls.FrameKoiNativeInput).Assembly.Location),
+                            "SteamVR"),
+                        "actions.json");
                 Controls.FrameKoiNativeInput.Initialize(manifestPath);
             }
             VRManager.Create<Interpreters.KoikGameInterp>(new KoikContext(settings));

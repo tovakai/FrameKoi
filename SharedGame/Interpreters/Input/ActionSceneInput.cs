@@ -23,6 +23,7 @@ namespace KK_VR.Interpreters
         private bool _walking;
         private float _continuousRotation;
         private float _rightStickTurn;
+        private Vector2 _leftStickMove;
         private bool _snapStickArmed = true;
         private Pressed _buttons;
         internal Transform _eyes;
@@ -123,6 +124,13 @@ namespace KK_VR.Interpreters
             {
                 CameraToPlayer(true);
             }
+            // This intentionally runs after the legacy camera follow. The native
+            // player walk path does not accept a 2D vector, so keep this opt-in
+            // until collisions and navigation are tested on real hardware.
+            if (KoikSettings.FrameKoiExperimentalStickMove.Value)
+            {
+                ApplyFrameKoiLeftStickMovement();
+            }
             UpdateCrouch();
         }
         internal override bool OnDirectionDown(int index, TrackpadDirection direction)
@@ -222,6 +230,42 @@ namespace KK_VR.Interpreters
                     _snapStickArmed = false;
                 }
             }
+        }
+
+        internal override void SetFrameKoiLeftStick(Vector2 rawAxis)
+        {
+            if (!KoikSettings.FrameKoiExperimentalStickMove.Value)
+            {
+                _leftStickMove = Vector2.zero;
+                return;
+            }
+
+            // Radial deadzone preserves diagonals and proportional movement.
+            var length = Mathf.Min(rawAxis.magnitude, 1f);
+            var deadzone = KoikSettings.FrameKoiMoveDeadzone.Value;
+            _leftStickMove = length <= deadzone ? Vector2.zero :
+                rawAxis.normalized * ((length - deadzone) / (1f - deadzone));
+        }
+
+        private void ApplyFrameKoiLeftStickMovement()
+        {
+            if (_leftStickMove.sqrMagnitude < 0.0001f || actionScene?.Player == null)
+                return;
+
+            var headForward = VR.Camera.Head.forward;
+            headForward.y = 0f;
+            if (headForward.sqrMagnitude < 0.001f)
+                return;
+            headForward.Normalize();
+
+            var right = Vector3.Cross(Vector3.up, headForward);
+            var movement = (right * _leftStickMove.x + headForward * _leftStickMove.y) *
+                (KoikSettings.FrameKoiMoveSpeed.Value * Mathf.Min(Time.unscaledDeltaTime, 0.05f));
+
+            // Direct origin translation may bypass the game's collision checks;
+            // it is therefore disabled by default and explicitly experimental.
+            VR.Camera.Origin.position += movement;
+            PlayerToCamera();
         }
 
         private void Rotation(float degrees)
@@ -362,6 +406,7 @@ namespace KK_VR.Interpreters
             _walking = false;
             _continuousRotation = 0f;
             _rightStickTurn = 0f;
+            _leftStickMove = Vector2.zero;
             _snapStickArmed = true;
             _standing = true;
             _crouching = false;

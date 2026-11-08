@@ -32,6 +32,13 @@ namespace KK_VR.Controls
         }
         protected override void OnDisable()
         {
+            // A lost button-up during a scene or tool transition must not
+            // leave the previous scene's grasp handler holding something.
+            if (_handOnlyGripHeld && KoikGameInterp.SceneInput != null)
+            {
+                KoikGameInterp.SceneInput.OnButtonUp(
+                    _index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
+            }
             _handOnlyGripHeld = false;
             DestroyGripMove();
             base.OnDisable();

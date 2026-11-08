@@ -27,6 +27,7 @@ namespace KK_VR.Interpreters
         private Vector2 _leftStickMove;
         private bool _snapStickArmed = true;
         private bool _stickSprint;
+        private readonly FrameKoiCrouchCamera _crouchCamera = new FrameKoiCrouchCamera();
         internal Vector2 MoveAxis => _leftStickMove;
         internal bool StickSprint => _stickSprint;
         internal bool RequestedCrouch => !_standing;
@@ -113,6 +114,7 @@ namespace KK_VR.Interpreters
         internal override void ReleaseController(int index)
         {
             StandUp();
+            ResetCrouchCamera();
             _stickSprint = false;
             _pressedButtons[index, 0] = false;
             if (!IsTriggerPress(0) && !IsTriggerPress(1)) ReleaseButton(Pressed.RightMouse);
@@ -146,6 +148,10 @@ namespace KK_VR.Interpreters
                 ApplyFrameKoiLeftStickMovement();
             }
             UpdateCrouch();
+            var height = GameSettings.StandingCameraPos.Value - GameSettings.CrouchingCameraPos.Value;
+            var delta = _crouchCamera.Step(_crouching && FrameKoiGamepadLocomotion.Enabled &&
+                KoikSettings.FrameKoiButtonCrouchCamera.Value, height, Time.unscaledDeltaTime);
+            VR.Camera.Origin.position += Vector3.up * delta;
         }
         internal override bool OnDirectionDown(int index, TrackpadDirection direction)
         {
@@ -392,7 +398,9 @@ namespace KK_VR.Interpreters
                 var objTop = actionScene.Player.chaCtrl.objTop;
                 if (GameSettings.CrouchByCameraPos.Value && objTop.activeInHierarchy == true)
                 {
-                    var delta_y = VR.Camera.transform.position.y - objTop.transform.position.y;
+                    // Remove the virtual offset before detecting real crouching,
+                    // otherwise button uncrouch immediately crouches again.
+                    var delta_y = VR.Camera.transform.position.y - _crouchCamera.Offset - objTop.transform.position.y;
 
                     if (_standing && delta_y < 0.8f)
                     {
@@ -447,6 +455,7 @@ namespace KK_VR.Interpreters
 
         internal void ResetState()
         {
+            ResetCrouchCamera();
             foreach (Pressed button in Enum.GetValues(typeof(Pressed)))
             {
                 ReleaseButton(button);
@@ -489,6 +498,11 @@ namespace KK_VR.Interpreters
             ReleaseButton(Pressed.Z);
             ReleaseButton(Pressed.Ctrl);
             if (_walking) PressButton(Pressed.Shift);
+        }
+
+        private void ResetCrouchCamera()
+        {
+            VR.Camera.Origin.position += Vector3.up * _crouchCamera.Reset();
         }
     }
 }

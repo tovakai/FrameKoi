@@ -48,6 +48,12 @@ namespace KK_VR.Controls
         protected override void OnUpdate()
         {
             HandleInput();
+            // Only the right tracked controller owns yaw. The other controller's
+            // axis remains available for future movement bindings.
+            if (_index == 1 && KoikGameInterp.SceneInput is ActionSceneInput roaming)
+            {
+                roaming.SetFrameKoiRightStick(Controller.GetAxis().x);
+            }
             _gripMove?.HandleGrabbing();
         }
         internal void OnRenderModelLoaded()
@@ -205,17 +211,25 @@ namespace KK_VR.Controls
 
             if (_lastDirection != direction)
             {
+                // While using the right analog axis for roaming yaw, legacy
+                // direction events must not generate a second turn.
+                var suppressRoamingTurn = KoikSettings.FrameKoiRightStickTurning.Value &&
+                    KoikGameInterp.SceneInput is ActionSceneInput;
                 if (menuInteractable)
                 {
                     _menuHandler.SetLastDirection(direction);
                 }
                 else
                 {
-                    if (_lastDirection != VRGIN.Controls.Controller.TrackpadDirection.Center)
+                    if (_lastDirection != VRGIN.Controls.Controller.TrackpadDirection.Center &&
+                        !(suppressRoamingTurn && (_lastDirection == TrackpadDirection.Left ||
+                                                  _lastDirection == TrackpadDirection.Right)))
                     {
                         KoikGameInterp.SceneInput.OnDirectionUp(_index, _lastDirection);
                     }
-                    if (direction != VRGIN.Controls.Controller.TrackpadDirection.Center)
+                    if (direction != VRGIN.Controls.Controller.TrackpadDirection.Center &&
+                        !(suppressRoamingTurn && (direction == TrackpadDirection.Left ||
+                                                  direction == TrackpadDirection.Right)))
                     {
                         KoikGameInterp.SceneInput.OnDirectionDown(_index, direction);
                     }

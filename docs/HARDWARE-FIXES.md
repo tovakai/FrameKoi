@@ -143,9 +143,11 @@ Hardware feedback confirmed left/right stick locomotion and the calibrated
 hands. Preserve the installed calibration: left (45, 0, 90), right (45, 0, -90).
 These are saved settings; replacing the DLL does not require resetting them.
 
-The native UI ray now uses tracked-controller forward, independent of render
-models and hand-mesh rotation. FrameKoi UI pointer rotation (0. General) defaults
-to (0, 0, 0) and can be tuned live without changing the hands. FrameKoi UI pointer
+The native UI ray now follows the calibrated hand tracking frame, independent
+of render models, item animation and grasp lag. Before hands initialize, it
+uses tracked-controller forward so startup menus still work. FrameKoi UI pointer
+rotation (0. General) defaults to an extra (0, 0, 0) and can be tuned live
+without changing the hands. FrameKoi UI pointer
 range defaults to 5 meters and is independent of panel scale.
 
 Both controllers can point at UI, including the hand that owns the wrist panel.

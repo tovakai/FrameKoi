@@ -358,7 +358,7 @@ namespace KK_VR.Settings
                 new ConfigDescription("Native controller UI ray reach in meters, independent of panel size.",
                     new AcceptableValueRange<float>(1f, 15f)));
             FrameKoiPointerRotation = config.Bind(SectionGeneral, "FrameKoi UI pointer rotation", Vector3.zero,
-                "Controller-local XYZ degrees for the native UI ray. Independent of the calibrated hand mesh; zero uses tracked controller forward. Applies live.");
+                "Extra local XYZ degrees for the native UI ray, after hand calibration. Zero follows the calibrated tracking frame; before hands initialize it uses controller forward. Does not change the hands. Applies live.");
 
 
             EnableBoop = config.Bind(SectionGeneral, "Enable Boop", true,

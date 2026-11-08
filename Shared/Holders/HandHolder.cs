@@ -30,6 +30,7 @@ namespace KK_VR.Holders
         private Vector3 _handCalibration;
         private float _nextCalibrationProbe;
         private Quaternion CalibratedRotation => FrameKoiPoseMath.HandRotation(_controller.rotation, _handCalibration);
+        internal Quaternion UIPointerRotation => CalibratedRotation;
         private bool _parent;
         internal bool IsParent => _parent;
         private SFXLoader _handSFX;

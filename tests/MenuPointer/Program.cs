@@ -88,6 +88,13 @@ static class Program
         KoikSettings.FrameKoiPointerRotation.Value=new Vector3(0,90,0);
         pointer.CheckMenu();
         Check((Laser(pointer).transform.forward-Vector3.right).sqrMagnitude<0.0001f,"live pointer calibration changes ray direction");
+        KoikSettings.FrameKoiPointerRotation.Value=Vector3.zero;
+        var handRotation=Quaternion.Euler(45,0,0);
+        KK_VR.Holders.HandHolder.GetHands.Add(new KK_VR.Holders.HandHolder { Controller=right, UIPointerRotation=handRotation });
+        pointer.CheckMenu();
+        Check((Laser(pointer).transform.forward-handRotation*Vector3.forward).sqrMagnitude<0.0001f,
+            "pointer follows calibrated hand tracking rather than animated item or model tip");
+        KK_VR.Holders.HandHolder.GetHands.Clear();
         EventSystem.current=null;
         Check(!KoikMenuHandler.SubmitSelectedUI(),"no UI selection produces no confirm click");
         var selected=new GameObject("button");

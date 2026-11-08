@@ -21,6 +21,7 @@ namespace KK_VR.Controls
              /// Handler that is in charge of the menu interaction with controllers
              /// </summary>
         private readonly Transform _controller;
+        private readonly Controller _owner;
         private const int MOUSE_STABILIZER_THRESHOLD = 30; // pixels
                                                            //private Controller.Lock _LaserLock = Controller.Lock.Invalid;
         private LineRenderer Laser;
@@ -77,6 +78,7 @@ namespace KK_VR.Controls
         {
             //_controller = controller;
             _scaleVector = new Vector2((float)VRGUI.Width / Screen.width, (float)VRGUI.Height / Screen.height);
+            _owner = controller;
             _controller = controller.transform;
             var attachPosition = FrameKoiNativeInput.Ready ? _controller : controller.FindAttachPosition("tip");
 
@@ -332,10 +334,13 @@ namespace KK_VR.Controls
 
         private bool UpdateNativePointer()
         {
-            // Modern controllers need no legacy render-model attachment or
-            // lighthouse-specific angle. Do not rotate the physical hand here.
+            // Use the calibrated tracking frame, not animated item orientation
+            // or a legacy render-model tip. Early menus work before hands exist.
             Laser.transform.localPosition = Vector3.zero;
-            Laser.transform.localRotation = Quaternion.Euler(KoikSettings.FrameKoiPointerRotation.Value);
+            var rotation = _controller.rotation;
+            foreach (var hand in HandHolder.GetHands)
+                if (hand.Controller == _owner) { rotation = hand.UIPointerRotation; break; }
+            Laser.transform.rotation = rotation * Quaternion.Euler(KoikSettings.FrameKoiPointerRotation.Value);
             GUIQuad closest = null;
             var bestHit = new RaycastHit();
             var distance = KoikSettings.FrameKoiPointerRange.Value;

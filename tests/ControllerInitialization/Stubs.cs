@@ -147,6 +147,8 @@ namespace KK_VR.Holders
 {
     public class HandHolder
     {
+        public VRGIN.Controls.Controller Controller;
+        public Quaternion UIPointerRotation = Quaternion.identity;
         public static List<HandHolder> GetHands = new List<HandHolder>();
         public static HandHolder GetHand(int index) => GetHands[index];
         public Handler Handler;

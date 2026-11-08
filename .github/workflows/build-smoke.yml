@@ -19,6 +19,15 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+      - name: Provide .NET 3.5 reference assemblies for legacy VRGIN
+        shell: pwsh
+        run: |
+          nuget install Microsoft.NETFramework.ReferenceAssemblies.net35 -Version 1.0.3 -OutputDirectory "$env:RUNNER_TEMP\\reference-assemblies" -NonInteractive
+          $root = Join-Path $env:RUNNER_TEMP "reference-assemblies\\Microsoft.NETFramework.ReferenceAssemblies.net35.1.0.3\\build"
+          if (-not (Test-Path (Join-Path $root ".NETFramework\\v3.5"))) {
+            throw "Expected .NET 3.5 reference pack not found under $root"
+          }
+          "TargetFrameworkRootPath=$root" >> $env:GITHUB_ENV
       - name: Build Sunshine main-game plugin
         run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal
       - name: Build Koikatsu main-game plugin

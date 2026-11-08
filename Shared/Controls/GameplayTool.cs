@@ -219,27 +219,29 @@ namespace KK_VR.Controls
 
             if (_lastDirection != direction)
             {
-                // While using the right analog axis for roaming yaw, legacy
-                // direction events must not generate a second turn.
-                var suppressRoamingTurn = KoikSettings.FrameKoiRightStickTurning.Value &&
-                    KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.ActionScene;
+                // When analog sticks are assigned dedicated gameplay roles, their
+                // legacy touchpad direction callbacks must not also crouch,
+                // interact, turn, or trigger dash. Keep menu UI input unchanged.
+                var roaming = KoikGameInterp.CurrentScene == KoikGameInterp.SceneType.ActionScene;
+                var suppressStickDirections = roaming &&
+                    ((_index == 1 && KoikSettings.FrameKoiRightStickTurning.Value) ||
+                     (_index == 0 && KoikSettings.FrameKoiExperimentalStickMove.Value));
                 if (menuInteractable)
                 {
                     _menuHandler.SetLastDirection(direction);
                 }
                 else
                 {
-                    if (_lastDirection != VRGIN.Controls.Controller.TrackpadDirection.Center &&
-                        !(suppressRoamingTurn && (_lastDirection == TrackpadDirection.Left ||
-                                                  _lastDirection == TrackpadDirection.Right)))
+                    if (!suppressStickDirections)
                     {
-                        KoikGameInterp.SceneInput.OnDirectionUp(_index, _lastDirection);
-                    }
-                    if (direction != VRGIN.Controls.Controller.TrackpadDirection.Center &&
-                        !(suppressRoamingTurn && (direction == TrackpadDirection.Left ||
-                                                  direction == TrackpadDirection.Right)))
-                    {
-                        KoikGameInterp.SceneInput.OnDirectionDown(_index, direction);
+                        if (_lastDirection != TrackpadDirection.Center)
+                        {
+                            KoikGameInterp.SceneInput.OnDirectionUp(_index, _lastDirection);
+                        }
+                        if (direction != TrackpadDirection.Center)
+                        {
+                            KoikGameInterp.SceneInput.OnDirectionDown(_index, direction);
+                        }
                     }
                 }
                 _lastDirection = direction;

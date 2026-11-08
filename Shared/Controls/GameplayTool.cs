@@ -191,11 +191,9 @@ namespace KK_VR.Controls
 
         private bool NativeMenuInteractable()
         {
-            if (_menu.IsAttached || !_menuHandler.CheckMenu()) return false;
-            var handler = HandHolder.GetHands.Count > _index ? HandHolder.GetHand(_index).Handler : null;
-            var interactable = _inputScene != null && !_inputScene.IsBusy && (handler == null || !handler.IsBusy);
-            _menuHandler.SetLaserVisibility(interactable);
-            return interactable;
+            // Visible UI takes priority over proximity to a character. Owning
+            // the wrist panel must not disable this controller's entire pointer.
+            return _inputScene != null && _menuHandler.CheckMenu();
         }
 
         private void OnNativeButton(string name, bool down)
@@ -271,7 +269,7 @@ namespace KK_VR.Controls
                     {
                         _nativeAOnMenu = NativeMenuInteractable();
                         if (_nativeAOnMenu) _menuHandler.OnTrigger(true);
-                        else KoikMenuHandler.SubmitSelectedUI();
+                        else if (!KoikMenuHandler.SubmitSelectedUI()) scene.ConfirmUI();
                     }
                     else
                     {

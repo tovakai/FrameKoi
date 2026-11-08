@@ -119,6 +119,8 @@ namespace KK_VR.Settings
         public static ConfigEntry<Vector3> FrameKoiLeftHandRotation { get; private set; }
         public static ConfigEntry<Vector3> FrameKoiRightHandRotation { get; private set; }
         public static ConfigEntry<PlayerBodyMode> FrameKoiPlayerBody { get; private set; }
+        public static ConfigEntry<float> FrameKoiPointerRange { get; private set; }
+        public static ConfigEntry<Vector3> FrameKoiPointerRotation { get; private set; }
         public static ConfigEntry<bool> StaticDirectionalLight { get; private set; }
 
         #endregion
@@ -138,6 +140,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<float> FrameKoiMoveDeadzone { get; private set; }
         public static ConfigEntry<bool> FrameKoiGameLocomotion { get; private set; }
         public static ConfigEntry<float> FrameKoiGameMoveScale { get; private set; }
+        public static ConfigEntry<bool> FrameKoiButtonCrouchCamera { get; private set; }
 
         #endregion
 
@@ -351,6 +354,11 @@ namespace KK_VR.Settings
                 "Controller-local XYZ degrees for the right hand. Try each axis independently; restore zero on the other axes while calibrating.");
             FrameKoiPlayerBody = config.Bind(SectionGeneral, "FrameKoi first person body", PlayerBodyMode.HideBody,
                 "Roaming protagonist in the headset only. FullBody preserves the original body. HideArms hides separate arm renderers; mixed body/arm meshes safely fall back to HideBody. Rendering only: rig, animation, colliders and VR hands remain intact. Enabled with native SteamVR input.");
+            FrameKoiPointerRange = config.Bind(SectionGeneral, "FrameKoi UI pointer range", 5f,
+                new ConfigDescription("Native controller UI ray reach in meters, independent of panel size.",
+                    new AcceptableValueRange<float>(1f, 15f)));
+            FrameKoiPointerRotation = config.Bind(SectionGeneral, "FrameKoi UI pointer rotation", Vector3.zero,
+                "Controller-local XYZ degrees for the native UI ray. Independent of the calibrated hand mesh; zero uses tracked controller forward. Applies live.");
 
 
             EnableBoop = config.Bind(SectionGeneral, "Enable Boop", true,
@@ -403,6 +411,8 @@ namespace KK_VR.Settings
             FrameKoiGameMoveScale = config.Bind(SectionRoaming, "FrameKoi game movement scale", 1f,
                 new ConfigDescription("Scale the game's walk/run speed for analog stick movement. Does not move outside the game's navigation path.",
                     new AcceptableValueRange<float>(0.25f, 1.5f)));
+            FrameKoiButtonCrouchCamera = config.Bind(SectionRoaming, "FrameKoi button crouch camera", true,
+                "Lower the headset smoothly for D-pad crouch under native game locomotion, using the difference between standing and crouching camera heights. Physical crouching remains independent.");
 
             FrameKoiMoveSpeed = config.Bind(SectionRoaming, "FrameKoi experimental move speed", 1.5f,
                 new ConfigDescription("Experimental left stick movement in meters per second.",

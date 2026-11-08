@@ -49,6 +49,30 @@ namespace KK_VR.Interpreters
         }
 #endif
         private TalkSceneHandler GetHandler(int index) => (TalkSceneHandler)HandHolder.GetHand(index).Handler;
+
+        internal override bool ConfirmUI()
+        {
+            if (_interpreter.IsStart) return false;
+            var adv = IsADV;
+            if (adv && !IsADVChoice)
+            {
+                // Existing ADV advance gesture, scoped to active dialogue.
+                VR.Input.Mouse.VerticalScroll(-1);
+                return true;
+            }
+            var buttons = GetRelevantButtons(GetState(), adv)
+                .Where(b => b != null && b.isActiveAndEnabled && b.IsInteractable()).ToArray();
+            if (buttons.Length == 0) return false;
+            var selected = GetSelectedButton(buttons, adv);
+            if (selected == null)
+            {
+                // First confirm selects a visible choice; the next confirms it.
+                // No arbitrary choice activation or unrestricted mouse click.
+                MarkButton(buttons[0], adv);
+            }
+            else selected.onClick.Invoke();
+            return true;
+        }
         internal override void OnDirectionUp(int index, TrackpadDirection direction)
         {
             if (_interpreter.IsStart) return;
@@ -606,3 +630,4 @@ namespace KK_VR.Interpreters
         }
     }
 }
+

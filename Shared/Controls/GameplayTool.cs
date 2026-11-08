@@ -15,6 +15,9 @@ namespace KK_VR.Controls
     public class GameplayTool : Tool
     {
         private int _index;
+        private bool _started;
+        private bool _initialized;
+        private SceneInput _inputScene;
 
         private KoikMenuTool _menu;
 
@@ -46,35 +49,70 @@ namespace KK_VR.Controls
         {
             get;
         }
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            FrameKoiInputDiagnostics.Log("tool-enable-" + GetInstanceID(),
+                $"GameplayTool activated, started={_started}, initialized={_initialized}");
+        }
         protected override void OnDisable()
+        {
+            ReleaseInput();
+            base.OnDisable();
+        }
+
+        internal void ReleaseInput()
         {
             FlushNativeButtons();
             // A lost button-up during a scene or tool transition must not
             // leave the previous scene's grasp handler holding something.
-            if (_handOnlyGripHeld && KoikGameInterp.SceneInput != null)
+            if (_handOnlyGripHeld && _inputScene != null)
             {
-                KoikGameInterp.SceneInput.OnButtonUp(
+                _inputScene.OnButtonUp(
                     _index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
             }
             _handOnlyGripHeld = false;
             DestroyGripMove();
-            base.OnDisable();
+            if (_index == 0) _inputScene?.SetFrameKoiLeftStick(Vector2.zero);
+            else _inputScene?.SetFrameKoiRightStick(0f);
+            _menuHandler?.ReleaseInput();
+            _lastDirection = TrackpadDirection.Center;
+            _inputScene = null;
+            FrameKoiInputDiagnostics.Log("tool-release-" + _index, "GameplayTool released input for controller " + _index);
         }
         protected override void OnStart()
         {
             base.OnStart();
-            // A clutch for init to avoid null-refs as I'd rather not touch VRGIN's init.
-            this.enabled = false;
+            _started = true;
+            TryInitialize();
         }
         protected override void OnDestroy()
         {
-
+            ReleaseInput();
+            _menu?.AbandonGUI();
+            _menuHandler?.Dispose();
         }
         protected override void OnUpdate()
         {
+            if (!TryInitialize()) return;
             var sceneInput = KoikGameInterp.SceneInput;
+            if (_inputScene != sceneInput)
+            {
+                ReleaseInput();
+                _inputScene = sceneInput;
+            }
+            // Tool enablement belongs to VRGIN (focus locks/tool selection).
+            // A render-model event must never override it.
+            if (!IsTracking || sceneInput == null)
+            {
+                FrameKoiInputDiagnostics.Log("tool-wait-" + GetInstanceID(),
+                    $"GameplayTool waiting: controller={_index}, tracking={IsTracking}, scene={sceneInput != null}");
+                ReleaseInput();
+                return;
+            }
             if (FrameKoiNativeInput.Ready)
             {
+                NativeMenuInteractable();
                 HandleNativeInput();
                 if (sceneInput != null)
                 {
@@ -86,7 +124,8 @@ namespace KK_VR.Controls
             }
             else
             {
-                if (_nativeHeld.Count != 0) FlushNativeButtons();
+                if (_nativeHeld.Count != 0) ReleaseInput();
+                if (HandHolder.GetHands.Count < 2) return;
                 HandleInput();
                 if (sceneInput != null)
                 {
@@ -103,7 +142,8 @@ namespace KK_VR.Controls
                 var axis = FrameKoiNativeInput.Ready
                     ? FrameKoiNativeInput.Analog(_index == 0 ? "left_stick" : "right_stick")
                     : Controller.GetAxis();
-                VRLog.Info($"FrameKoi controller {_index} axis x={axis.x:F2}, y={axis.y:F2}, native={FrameKoiNativeInput.Ready}");
+                FrameKoiInputDiagnostics.Log("axis-" + _index,
+                    $"controller {_index} axis x={axis.x:F2}, y={axis.y:F2}, native={FrameKoiNativeInput.Ready}", 15);
             }
             _gripMove?.HandleGrabbing();
         }
@@ -147,15 +187,22 @@ namespace KK_VR.Controls
         private bool NativeMenuInteractable()
         {
             if (_menu.IsAttached || !_menuHandler.CheckMenu()) return false;
-            var scene = KoikGameInterp.SceneInput;
-            var handler = HandHolder.GetHand(_index).Handler;
-            return scene != null && !scene.IsBusy && (handler == null || !handler.IsBusy);
+            var handler = HandHolder.GetHands.Count > _index ? HandHolder.GetHand(_index).Handler : null;
+            var interactable = _inputScene != null && !_inputScene.IsBusy && (handler == null || !handler.IsBusy);
+            _menuHandler.SetLaserVisibility(interactable);
+            return interactable;
         }
 
         private void OnNativeButton(string name, bool down)
         {
-            var scene = KoikGameInterp.SceneInput;
-            if (scene == null) return;
+            var scene = _inputScene;
+            FrameKoiInputDiagnostics.Log("dispatch-" + name,
+                $"controller {_index} dispatch {name} {(down ? "down" : "up")} scene={scene?.GetType().Name ?? "none"}", 12);
+            // Global/menu releases still need to run when the scene has gone away.
+            if (scene == null && down) return;
+            if (HandHolder.GetHands.Count < 2 &&
+                (name.Contains("grip") || name.Contains("trigger") || name.Contains("bumper") ||
+                 name.StartsWith("dpad_") || name == "left_stick_click")) return;
             switch (name)
             {
                 case "left_grip":
@@ -164,7 +211,7 @@ namespace KK_VR.Controls
                     if (down)
                         scene.OnButtonDown(_index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
                     else
-                        scene.OnButtonUp(_index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
+                        scene?.OnButtonUp(_index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
                     break;
                 case "left_trigger":
                 case "right_trigger":
@@ -181,7 +228,7 @@ namespace KK_VR.Controls
                         if (_nativeTriggerMenuHeld)
                             _menuHandler.OnTrigger(false);
                         else
-                            scene.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Trigger, TrackpadDirection.Center);
+                            scene?.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Trigger, TrackpadDirection.Center);
                         _nativeTriggerMenuHeld = false;
                     }
                     break;
@@ -191,7 +238,7 @@ namespace KK_VR.Controls
                     if (down)
                         scene.OnButtonDown(_index, EVRButtonId.k_EButton_SteamVR_Touchpad, TrackpadDirection.Center);
                     else
-                        scene.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Touchpad, TrackpadDirection.Center);
+                        scene?.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Touchpad, TrackpadDirection.Center);
                     break;
                 case "left_stick_click":
                     if (down) scene.FrameKoiSprintClick();
@@ -212,7 +259,7 @@ namespace KK_VR.Controls
                         default: direction = TrackpadDirection.Right; break;
                     }
                     if (down) scene.OnDirectionDown(_index, direction);
-                    else scene.OnDirectionUp(_index, direction);
+                    else scene?.OnDirectionUp(_index, direction);
                     break;
                 case "a":
                     if (down)
@@ -246,15 +293,36 @@ namespace KK_VR.Controls
 
         internal void OnRenderModelLoaded()
         {
-            this.enabled = true;
+            // Optional notification only. It can arrive before Tool.OnStart,
+            // more than once, or while VRGIN intentionally disables this tool.
+            FrameKoiInputDiagnostics.Log("render-model-" + GetInstanceID(),
+                "GameplayTool received optional render-model callback");
+        }
+
+        private bool TryInitialize()
+        {
+            if (_initialized) return true;
+            if (!_started || Owner == null || VR.Mode == null ||
+                (Owner != VR.Mode.Left && Owner != VR.Mode.Right))
+            {
+                FrameKoiInputDiagnostics.Log("waiting-owner-" + GetInstanceID(),
+                    "GameplayTool waiting for controller ownership");
+                return false;
+            }
+            // Device indices are assigned by SteamVR and are not hand indices.
             _index = Owner == VR.Mode.Left ? 0 : 1;
             _menu ??= new KoikMenuTool(Owner);
             _menuHandler ??= new KoikMenuHandler(Owner);
+            _initialized = true;
+            FrameKoiInputDiagnostics.Log("tool-init-" + GetInstanceID(),
+                $"GameplayTool initialized controller {_index}, device={Tracking.index}, enabled={enabled}, native={FrameKoiNativeInput.Ready}; render model not required");
+            return true;
         }
         internal void DestroyGripMove()
         {
+            if (_gripMove == null) return;
             _gripMove = null;
-            KoikGameInterp.SceneInput.OnGripMove(_index, active: false);
+            _inputScene?.OnGripMove(_index, active: false);
         }
         internal void LazyGripMove(int avgFrame)
         {
@@ -429,3 +497,4 @@ namespace KK_VR.Controls
         }
     }
 }
+

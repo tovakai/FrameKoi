@@ -13,6 +13,13 @@
 
 ## Physical control checklist
 
+Before pressing buttons, verify two `GameplayTool initialized controller`
+messages (0 and 1) and `native action polling executing`. A render-model
+callback is optional. Then look for `digital ... active=True`, analog
+moving/idle messages and `dispatch ... down/up` to separate binding issues
+from tool startup or scene dispatch issues. Diagnostics are bounded; restart
+for a fresh capture. See [controller initialization](CONTROLLER-INITIALIZATION.md).
+
 | Control | Expected initial native behavior | Pass / Fail |
 | --- | --- | --- |
 | Left stick | Independent analog axes; optional experimental roaming movement | |
@@ -54,3 +61,4 @@ Valve's system buttons are left to SteamVR; FrameKoi must not steal them.
 Record: game variant (KK/Party/KKS), plugin commit SHA, Proton version, SteamVR version, native mode on/off, controller mapping shown in SteamVR, and the last 50–100 lines of `BepInEx/LogOutput.log` around the error. A brief description of which physical button was pressed and in which scene is more valuable than a generic "controls broken".
 
 If native mode fails, disable it and restart. The legacy polling route is intentionally retained as a fallback.
+

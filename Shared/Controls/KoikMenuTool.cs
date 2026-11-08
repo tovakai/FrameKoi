@@ -35,7 +35,7 @@ namespace KK_VR.Controls
         }
         internal static void ToggleState()
         {
-            _gui.gameObject.SetActive(!_gui.gameObject.activeSelf);
+            if (_gui != null) _gui.gameObject.SetActive(!_gui.gameObject.activeSelf);
         }
         //internal void TakeGUI(GUIQuad quad)
         //{
@@ -72,7 +72,7 @@ namespace KK_VR.Controls
 
         internal void AbandonGUI()
         {
-            if (_attached)
+            if (_attached && _gui != null)
             {
                 //timeAbandoned = Time.unscaledTime;
                 _gui.IsOwned = false;
@@ -82,3 +82,4 @@ namespace KK_VR.Controls
         }
     }
 }
+

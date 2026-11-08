@@ -24,6 +24,9 @@ namespace KK_VR.Controls
         private static int _lastFrame = -1;
         private static ulong _setHandle;
         private static InputFunctions _api;
+        private static readonly ActiveActionSet[] ActiveSets = new ActiveActionSet[1];
+        private static readonly Dictionary<string, string> Observations = new Dictionary<string, string>();
+        private static float _nextPollDiagnostic;
 
         internal static bool Ready { get { return _ready; } }
 
@@ -45,7 +48,7 @@ namespace KK_VR.Controls
         private delegate int GetAnalogDelegate(
             ulong handle, ref AnalogState state, uint size, ulong restrictToDevice);
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
         private struct ActiveActionSet
         {
             public ulong actionSet;
@@ -54,7 +57,7 @@ namespace KK_VR.Controls
             public uint padding;
             public int priority;
         }
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
         private struct DigitalState
         {
             [MarshalAs(UnmanagedType.I1)] public bool active;
@@ -63,7 +66,7 @@ namespace KK_VR.Controls
             [MarshalAs(UnmanagedType.I1)] public bool changed;
             public float updateTime;
         }
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
         private struct AnalogState
         {
             [MarshalAs(UnmanagedType.I1)] public bool active;
@@ -112,9 +115,8 @@ namespace KK_VR.Controls
 
         internal static bool Initialize(string manifestPath)
         {
-            _ready = false;
-            Handles.Clear();
-            _lastFrame = -1;
+            Reset();
+            FrameKoiInputDiagnostics.Reset();
             if (String.IsNullOrEmpty(manifestPath) || !File.Exists(manifestPath))
             {
                 VRLog.Warn("FrameKoi native input manifest missing: " + manifestPath);
@@ -122,6 +124,7 @@ namespace KK_VR.Controls
             }
             try
             {
+                ValidateAbi();
                 int error = 0;
                 var table = VR_GetGenericInterface("FnTable:IVRInput_011", ref error);
                 if (table == IntPtr.Zero || error != 0)
@@ -152,6 +155,7 @@ namespace KK_VR.Controls
                     return false;
                 }
                 _ready = true;
+                ActiveSets[0] = new ActiveActionSet { actionSet = _setHandle };
                 VRLog.Info("FrameKoi native input action set initialized; using native controller dispatcher.");
                 return true;
             }
@@ -173,17 +177,38 @@ namespace KK_VR.Controls
                 p => _api.GetActionHandle(p, ref resolved));
             handle = result == 0 ? resolved : InvalidHandle;
             Handles[name] = handle;
+            if (handle == InvalidHandle)
+                FrameKoiInputDiagnostics.Log("handle-" + name, $"action {name} handle unavailable, error={result}");
             return handle != InvalidHandle;
+        }
+
+        // ValveSoftware/openvr headers/openvr_api.cs: IVRInput slots 0..6 use
+        // StdCall; VR_GetGenericInterface uses Cdecl. Proton loads the Windows
+        // openvr_api DLL, so the Windows ABI applies even on a Linux host.
+        // Do not use Pack=1 or four-byte managed BOOLs for action data.
+        internal static void ValidateAbi()
+        {
+            if (Marshal.SizeOf(typeof(ActiveActionSet)) != 32 ||
+                Marshal.SizeOf(typeof(DigitalState)) != 24 ||
+                Marshal.SizeOf(typeof(AnalogState)) != 48 ||
+                Marshal.OffsetOf(typeof(DigitalState), "origin").ToInt32() != 8 ||
+                Marshal.OffsetOf(typeof(DigitalState), "state").ToInt32() != 16 ||
+                Marshal.OffsetOf(typeof(DigitalState), "updateTime").ToInt32() != 20 ||
+                Marshal.OffsetOf(typeof(AnalogState), "origin").ToInt32() != 8 ||
+                Marshal.OffsetOf(typeof(AnalogState), "x").ToInt32() != 16 ||
+                Marshal.OffsetOf(typeof(AnalogState), "updateTime").ToInt32() != 40)
+                throw new InvalidOperationException("OpenVR action ABI layout mismatch");
+            FrameKoiInputDiagnostics.Log("abi",
+                $"OpenVR ABI verified: pointer={IntPtr.Size}, actionSet=32, digital=24, analog=48, pack=8");
         }
 
         internal static bool Poll()
         {
             if (!_ready) return false;
             if (_lastFrame == Time.frameCount) return true;
-            var sets = new[] { new ActiveActionSet { actionSet = _setHandle } };
             try
             {
-                var status = _api.Update(sets, (uint)Marshal.SizeOf(typeof(ActiveActionSet)), 1);
+                var status = _api.Update(ActiveSets, (uint)Marshal.SizeOf(typeof(ActiveActionSet)), 1);
                 if (status != 0)
                 {
                     VRLog.Warn("FrameKoi action polling failed (" + status + "); disabling native mode.");
@@ -191,6 +216,11 @@ namespace KK_VR.Controls
                     return false;
                 }
                 _lastFrame = Time.frameCount;
+                if (Time.unscaledTime >= _nextPollDiagnostic)
+                {
+                    _nextPollDiagnostic = Time.unscaledTime + 5f;
+                    FrameKoiInputDiagnostics.Log("poll", $"native action polling executing, frame={_lastFrame}, status=0", 6);
+                }
                 return true;
             }
             catch (Exception ex)
@@ -208,8 +238,10 @@ namespace KK_VR.Controls
                 ulong handle;
                 if (!Poll() || !ActionHandle(name, out handle)) return false;
                 var state = new DigitalState();
-                return _api.GetDigital(handle, ref state, (uint)Marshal.SizeOf(typeof(DigitalState)), 0) == 0
-                    && state.active && state.state;
+                var error = _api.GetDigital(handle, ref state, (uint)Marshal.SizeOf(typeof(DigitalState)), 0);
+                Observe(name, $"error={error}, active={state.active}, pressed={state.state}",
+                    $"digital {name}: error={error}, active={state.active}, pressed={state.state}, changed={state.changed}, origin={state.origin}");
+                return error == 0 && state.active && state.state;
             }
             catch (Exception ex)
             {
@@ -226,8 +258,10 @@ namespace KK_VR.Controls
                 ulong handle;
                 if (!Poll() || !ActionHandle(name, out handle)) return Vector2.zero;
                 var state = new AnalogState();
-                return _api.GetAnalog(handle, ref state, (uint)Marshal.SizeOf(typeof(AnalogState)), 0) == 0
-                    && state.active ? new Vector2(state.x, state.y) : Vector2.zero;
+                var error = _api.GetAnalog(handle, ref state, (uint)Marshal.SizeOf(typeof(AnalogState)), 0);
+                Observe(name, $"error={error}, active={state.active}, moving={Math.Abs(state.x) > 0.1f || Math.Abs(state.y) > 0.1f}",
+                    $"analog {name}: error={error}, active={state.active}, x={state.x:F2}, y={state.y:F2}, origin={state.origin}");
+                return error == 0 && state.active ? new Vector2(state.x, state.y) : Vector2.zero;
             }
             catch (Exception ex)
             {
@@ -244,6 +278,46 @@ namespace KK_VR.Controls
             _api = null;
             _lastFrame = -1;
             _setHandle = 0;
+            Observations.Clear();
+            _nextPollDiagnostic = 0;
+            ActiveSets[0] = new ActiveActionSet();
+        }
+
+        private static void Observe(string name, string state, string message)
+        {
+            string previous;
+            if (!Observations.TryGetValue(name, out previous) || previous != state)
+            {
+                Observations[name] = state;
+                FrameKoiInputDiagnostics.Log("action-" + name, message, 12);
+            }
+        }
+    }
+
+    // Automatic startup evidence, bounded both per event and for the entire
+    // native session. No per-frame log stream or unbounded transition logging.
+    internal static class FrameKoiInputDiagnostics
+    {
+        private static readonly Dictionary<string, int> Counts = new Dictionary<string, int>();
+        private static int _remaining = 300;
+
+        internal static void Reset()
+        {
+            Counts.Clear();
+            _remaining = 300;
+        }
+
+        internal static void Log(string key, string message, int limit = 3)
+        {
+            int count;
+            Counts.TryGetValue(key, out count);
+            if (count >= limit || _remaining <= 0) return;
+            Counts[key] = count + 1;
+            --_remaining;
+            VRLog.Info("FrameKoi input: " + message);
+            if (_remaining == 0)
+                VRLog.Info("FrameKoi input: diagnostic budget exhausted; restart to capture another session.");
         }
     }
 }
+

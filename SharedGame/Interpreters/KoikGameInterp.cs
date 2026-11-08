@@ -215,6 +215,11 @@ namespace KK_VR.Interpreters
             {
                //VRPlugin.Logger.LogDebug($"Interpreter:Start:{type}");
                 _currentScene = type;
+                // Release into the scene that received each press, before its
+                // handlers/interpreter are torn down. A held button can then
+                // enter the new scene as a fresh press on the next update.
+                VR.Mode?.Left?.GetComponent<GameplayTool>()?.ReleaseInput();
+                VR.Mode?.Right?.GetComponent<GameplayTool>()?.ReleaseInput();
                 _sceneInterpreter?.OnDisable();
                 _sceneInterpreter = CreateSceneInterpreter(type, behaviour);
                 _sceneInterpreter.OnStart();
@@ -414,3 +419,4 @@ namespace KK_VR.Interpreters
         }
     }
 }
+

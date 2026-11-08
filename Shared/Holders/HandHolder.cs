@@ -128,7 +128,7 @@ namespace KK_VR.Holders
 
             _activeItem = _itemList[0];
             ActivateItem();
-            Controller.Model.gameObject.SetActive(false);
+            if (Controller.Model != null) Controller.Model.gameObject.SetActive(false);
         }
         private void InitItem(int i, int index)
         {
@@ -544,3 +544,4 @@ namespace KK_VR.Holders
         //];
     }
 }
+

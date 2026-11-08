@@ -118,6 +118,26 @@ namespace KK_VR.Controls
             LaserVisible = show;
         }
 
+        internal void ReleaseInput()
+        {
+            if ((_pressedButtons & Buttons.Left) != 0) OnTrigger(false);
+            if ((_pressedButtons & Buttons.Middle) != 0) OnTouchpad(false);
+            _lastDirection = Controller.TrackpadDirection.Center;
+            _NextScrollTime = null;
+            if (_quad != null && _quad.IsOwned) AbandonGUI();
+            SetLaserVisibility(false);
+        }
+
+        internal void Dispose()
+        {
+            ReleaseInput();
+            if (Laser != null)
+            {
+                UnityEngine.Object.Destroy(Laser.material);
+                UnityEngine.Object.Destroy(Laser.gameObject);
+            }
+        }
+
         internal void OnTrigger(bool press)
         {
             if (press)
@@ -430,5 +450,6 @@ namespace KK_VR.Controls
         //}
     }
 }
+
 
 

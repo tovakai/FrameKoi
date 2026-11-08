@@ -74,7 +74,11 @@ namespace KK_VR.Controls
         private void Sync()
         {
             var input = KoikGameInterp.SceneInput;
-            if (_router.Context != null && !ReferenceEquals(_router.Context.Owner, input)) _ui.SceneMenuVisible = false;
+            if (_router.Context != null && !ReferenceEquals(_router.Context.Owner, input))
+            {
+                _ui.SceneMenuVisible = false;
+                if (_ownsPause) { Time.timeScale = _previousTimeScale; _ownsPause = false; }
+            }
             var type = KoikGameInterp.CurrentScene;
             var loading = SceneFlag("IsNowLoading") || SceneFlag("IsNowLoadingFade");
             var added = ReadScene("AddSceneName") as string ?? "";

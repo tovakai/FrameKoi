@@ -143,7 +143,7 @@ namespace KK_VR.Interpreters
             // This intentionally runs after the legacy camera follow. The native
             // player walk path does not accept a 2D vector, so keep this opt-in
             // until collisions and navigation are tested on real hardware.
-            if (!FrameKoiGamepadLocomotion.Enabled && KoikSettings.FrameKoiExperimentalStickMove.Value)
+            if (FrameKoiInputRuntime.RoamingAllowed && !FrameKoiGamepadLocomotion.Enabled && KoikSettings.FrameKoiExperimentalStickMove.Value)
             {
                 ApplyFrameKoiLeftStickMovement();
             }

@@ -23,6 +23,8 @@ Remove-Item -Path ($out + "\BepInEx\plugins\KK_MainGameVR\Plugins") -Force
 
 Copy-Item -Path ($dir + "\KK\Patcher\*") -Destination ($out + "\BepInEx\patchers\KK_MainGameVR_Patcher") | Out-Null
 Copy-Item -Path ($dir + "\KK\Images\*") -Destination ($out + "\BepInEx\plugins\KK_MainGameVR\Images\") -Force | Out-Null
+New-Item -ItemType Directory -Force -Path ($out + "\BepInEx\plugins\KK_MainGameVR\SteamVR") | Out-Null
+Copy-Item -Path ($PSScriptRoot + "\SteamVR\*.json") -Destination ($out + "\BepInEx\plugins\KK_MainGameVR\SteamVR") -Force | Out-Null
 Copy-Item -Path ($dir + "\KK\Data\*") -Destination ($out + "\Koikatu_Data") -Recurse  | Out-Null
 
 $ver = "v" + (Get-ChildItem -Path ($dir + "\KK\KoikatuVR.dll") -Force -ErrorAction Stop)[0].VersionInfo.FileVersion.ToString() -replace "([\d+\.]+?\d+)[\.0]*$", '${1}'
@@ -49,6 +51,8 @@ Copy-Item -Path ($dir + "\KKS\*") -Destination ($out + "\BepInEx\plugins\KKS_VR"
 Remove-Item -Path ($out + "\BepInEx\plugins\KKS_VR\Libs") -Force
 
 Copy-Item -Path ($dir + "\KKS\Images\*") -Destination ($out + "\BepInEx\plugins\KKS_VR\Images\") -Force | Out-Null
+New-Item -ItemType Directory -Force -Path ($out + "\BepInEx\plugins\KKS_VR\SteamVR") | Out-Null
+Copy-Item -Path ($PSScriptRoot + "\SteamVR\*.json") -Destination ($out + "\BepInEx\plugins\KKS_VR\SteamVR") -Force | Out-Null
 Copy-Item -Path ($dir + "\KKS\Libs\_Data\*") -Destination ($out + "\CharaStudio_Data") -Recurse  | Out-Null
 Copy-Item -Path ($dir + "\KKS\Libs\_Data\*") -Destination ($out + "\KoikatsuSunshine_Data") -Recurse  | Out-Null
 

@@ -28,6 +28,14 @@ jobs:
             throw "Expected .NET 3.5 reference pack not found under $root"
           }
           "TargetFrameworkRootPath=$root" >> $env:GITHUB_ENV
+      - name: Pin unversioned VRGIN_OpenXR Unity packages in CI checkout
+        shell: pwsh
+        run: |
+          $project = "VRGIN_OpenXR/VRGIN_OpenXR.csproj"
+          $source = Get-Content -Path $project -Raw
+          $patched = [regex]::Replace($source, '(<PackageReference Include="IllusionLibs\\.KoikatsuSunshine\\.UnityEngine\\.[^"]+")\\s*/>', '$1 Version="2019.4.9" />')
+          if ($source -eq $patched) { throw "No VRGIN_OpenXR package references were patched" }
+          Set-Content -Path $project -Value $patched
       - name: Build Sunshine main-game plugin
         run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal
       - name: Build Koikatsu main-game plugin

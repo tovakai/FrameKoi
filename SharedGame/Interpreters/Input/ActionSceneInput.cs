@@ -173,7 +173,12 @@ namespace KK_VR.Interpreters
 
         internal override void OnDirectionUp(int index, TrackpadDirection direction)
         {
-            StopRotation();
+            // Interaction initiated on D-pad Up must have a matching release.
+            // Without this, the virtual right mouse button could stick down.
+            if (direction == TrackpadDirection.Up)
+                ReleaseButton(Pressed.RightMouse);
+            if (direction == TrackpadDirection.Left || direction == TrackpadDirection.Right)
+                StopRotation();
         }
 
         protected override bool OnTrigger(int index, bool press)

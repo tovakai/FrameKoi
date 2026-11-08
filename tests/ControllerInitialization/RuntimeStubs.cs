@@ -14,6 +14,8 @@ namespace UnityEngine
         public T GetComponent<T>() where T : Component => gameObject.GetComponent<T>();
     }
     public class MonoBehaviour : Component { }
+    public static class Screen { public static int width=1600,height=900; }
+    public static class Input { public static Vector3 mousePosition; }
     public class GameObject : Object
     {
         public readonly Transform transform;
@@ -28,10 +30,12 @@ namespace UnityEngine
     }
     public class Transform : Object
     {
+        public Transform transform => this;
         public GameObject gameObject;
         public string name => gameObject?.name ?? "";
         public Transform parent;
         public Vector3 localPosition;
+        public Vector3 localScale = new Vector3(1,1,1);
         public Quaternion localRotation = Quaternion.identity;
         public Vector3 position
         {
@@ -51,6 +55,12 @@ namespace UnityEngine
         public Vector3 forward => rotation * Vector3.forward;
         public Vector3 TransformPoint(Vector3 point) => position + rotation*point;
         public Transform Find(string path) => this;
+        public void SetPositionAndRotation(Vector3 p,Quaternion r) { position=p; rotation=r; }
+        public void SetParent(Transform value,bool worldPositionStays)
+        {
+            var p=position; var r=rotation; parent=value;
+            if(worldPositionStays) { position=p; rotation=r; }
+        }
     }
     public struct Vector3
     {
@@ -95,6 +105,8 @@ namespace UnityEngine
         public static float Sign(float v)=>Math.Sign(v);
         public static float Clamp(float v,float min,float max)=>Math.Max(min,Math.Min(max,v));
         public static float Clamp01(float v)=>Clamp(v,0,1);
+        public static float MoveTowards(float current,float target,float step) => Math.Abs(target-current)<=step ? target : current+Math.Sign(target-current)*step;
+        public static float Round(float v)=>(float)Math.Round(v);
     }
     public class Renderer : Component { public bool enabled = true; }
     public class SkinnedMeshRenderer : Renderer { public Transform[] bones = new Transform[0]; }
@@ -159,6 +171,9 @@ namespace KK_VR.Settings
         public static ValueSetting<float> FrameKoiGameMoveScale = new ValueSetting<float>(1f);
         public static Setting FrameKoiGameLocomotion = new Setting { Value=true };
         public static Setting FrameKoiNativeInputEnabled = new Setting { Value=true };
+        public static Setting FrameKoiButtonCrouchCamera = new Setting { Value=true };
+        public static ValueSetting<float> FrameKoiPointerRange = new ValueSetting<float>(5f);
+        public static ValueSetting<Vector3> FrameKoiPointerRotation = new ValueSetting<Vector3>(Vector3.zero);
         public static ValueSetting<PlayerBodyMode> FrameKoiPlayerBody = new ValueSetting<PlayerBodyMode>(PlayerBodyMode.HideBody);
     }
     public static class GameSettings

@@ -21,6 +21,8 @@ jobs:
           dotnet-version: '9.0.x'
       - name: Test controller startup, render scopes and game locomotion
         run: dotnet run --project tests/ControllerInitialization/ControllerInitialization.csproj --configuration Release
+      - name: Test production menu pointer and UI confirmation
+        run: dotnet run --project tests/MenuPointer/MenuPointer.csproj --configuration Release
       - name: Provide .NET 3.5 reference assemblies for legacy VRGIN
         shell: pwsh
         run: |

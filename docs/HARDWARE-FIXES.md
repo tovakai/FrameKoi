@@ -136,3 +136,43 @@ NavMeshAgent responses are simulated. Its boundary test proves routing through
 that adapter, not real collision/navigation safety. The animated hand assets,
 NPC reactions, nonstandard body meshes, Proton controller-type reporting and
 actual Steam Frame poses still require the headset checklist.
+
+## Dialogue pointer and crouch-height follow-up
+
+Hardware feedback confirmed left/right stick locomotion and the calibrated
+hands. Preserve the installed calibration: left (45, 0, 90), right (45, 0, -90).
+These are saved settings; replacing the DLL does not require resetting them.
+
+The native UI ray now uses tracked-controller forward, independent of render
+models and hand-mesh rotation. FrameKoi UI pointer rotation (0. General) defaults
+to (0, 0, 0) and can be tuned live without changing the hands. FrameKoi UI pointer
+range defaults to 5 meters and is independent of panel scale.
+
+Both controllers can point at UI, including the hand that owns the wrist panel.
+Character proximity/busy state no longer blocks visible UI. The nearest active,
+rendered, collidable panel is selected on every update. The cursor is positioned
+on the first hit before any click dispatch. Rays remain visible on a miss.
+Held UI clicks retain desktop cursor ownership through release so the other hand
+cannot drag them off target. Losing a panel releases the click and reacquires
+other active UI; native cleanup preserves wrist-panel ownership.
+
+A still never injects an unrestricted world click. It clicks a targeted panel,
+submits an active selected Unity control, or uses a dialogue-only fallback.
+In text-only ADV the fallback uses the existing scroll-to-advance gesture.
+For dialogue choices, first confirm highlights a visible choice and the next
+confirms it. Roaming has no such fallback.
+
+FrameKoi button crouch camera (1. Roaming) defaults to true. With native game
+locomotion, D-pad crouch smoothly lowers the origin by the difference between
+Camera height and Crouching camera height (defaults 1.5 and 0.7 meters).
+Stand-up reverses only that virtual offset. Real head movement is preserved and
+physical crouch detection subtracts the offset to avoid feedback. Controller
+release, scene teardown and reset remove any remaining virtual crouch offset.
+Disable this option to keep the previous fixed virtual height.
+
+The follow-up tests include production KoikMenuHandler with simulated Unity
+raycasts/desktop input, plus virtual/physical crouch and cleanup regressions.
+Retest a dialogue from entry through choices and exit, aim from both controllers
+while near a character, confirm a newly acquired panel immediately, and try
+crouch/uncrouch while stationary and walking. These fixes need a new headset
+runtime test; successful CI alone does not establish that result.

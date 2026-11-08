@@ -150,9 +150,38 @@ static class HardwareTests
         input.OnButtonUp(1,Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger,TrackpadDirection.Center);
         check(!VR.Input.Mouse.Right,"last trigger releases contextual input");
         player.isGateHit=false;
+        input.SetFrameKoiRightStick(0);
+        KoikSettings.FrameKoiRightStickTurning.Value = false;
+        GameSettings.CrouchByCameraPos.Value = true;
+        var standingHead = VR.Camera.Head.position;
         input.OnDirectionDown(0,TrackpadDirection.Down);
+        for (int i=0;i<20;i++) input.HandleInput();
+        var crouchedHead = VR.Camera.Head.position;
+        var expectedDrop = GameSettings.StandingCameraPos.Value - GameSettings.CrouchingCameraPos.Value;
+        check(Math.Abs(standingHead.y-crouchedHead.y-expectedDrop)<0.001f &&
+            Math.Abs(standingHead.x-crouchedHead.x)<0.001f && Math.Abs(standingHead.z-crouchedHead.z)<0.001f,
+            "button crouch lowers only virtual headset height");
+        input.OnDirectionDown(0,TrackpadDirection.Down);
+        for (int i=0;i<20;i++) input.HandleInput();
+        check(Near(standingHead,VR.Camera.Head.position) && !input.RequestedCrouch,
+            "uncrouch restores headset without physical-crouch feedback");
+        input.OnDirectionDown(0,TrackpadDirection.Down);
+        input.HandleInput();
         input.ReleaseController(0);
         check(!input.RequestedCrouch && !input.StickSprint,"controller release clears crouch/sprint");
+        check(Near(standingHead,VR.Camera.Head.position), "controller release removes partial crouch-camera offset");
+        VR.Camera.Head.localPosition += new Vector3(0,-0.7f,0);
+        var physicalHead = VR.Camera.Head.position;
+        input.HandleInput();
+        check(Near(physicalHead,VR.Camera.Head.position) && input.RequestedCrouch, "physical crouch is not lowered twice");
+        VR.Camera.Head.localPosition += new Vector3(0,0.7f,0);
+        input.HandleInput();
+        check(!input.RequestedCrouch, "physical uncrouch still works");
+        input.OnDirectionDown(0,TrackpadDirection.Down);
+        input.HandleInput();
+        input.OnDisable();
+        check(Near(standingHead,VR.Camera.Head.position), "scene teardown removes virtual crouch offset");
+        GameSettings.CrouchByCameraPos.Value = false;
         input.SetFrameKoiLeftStick(Vector2.zero);
         KoikSettings.FrameKoiRightStickTurning.Value=true;
         input.SetFrameKoiRightStick(1);

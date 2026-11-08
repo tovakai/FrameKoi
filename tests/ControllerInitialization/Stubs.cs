@@ -12,6 +12,7 @@ namespace UnityEngine
     {
         public int GetInstanceID() => GetHashCode();
         public static implicit operator bool(Object value) => value != null;
+        public static void Destroy(Object value) { }
     }
     public class Texture2D : Object { }
     public struct Vector2
@@ -23,6 +24,10 @@ namespace UnityEngine
         public float magnitude => (float)Math.Sqrt(sqrMagnitude);
         public Vector2 normalized => magnitude > 0 ? new Vector2(x/magnitude, y/magnitude) : zero;
         public static Vector2 operator *(Vector2 v, float s) => new Vector2(v.x*s,v.y*s);
+        public static Vector2 Scale(Vector2 a, Vector2 b) => new Vector2(a.x*b.x,a.y*b.y);
+        public static float Distance(Vector2 a, Vector2 b) => new Vector2(a.x-b.x,a.y-b.y).magnitude;
+        public static implicit operator Vector3(Vector2 v) => new Vector3(v.x,v.y,0);
+        public static implicit operator Vector2(Vector3 v) => new Vector2(v.x,v.y);
     }
     public static class Time
     {
@@ -51,6 +56,9 @@ namespace VRGIN.Controls
 {
     public class Controller : UnityEngine.Object
     {
+        private readonly GameObject _object = new GameObject("Controller");
+        public Transform transform => _object.transform;
+        public Transform FindAttachPosition(params string[] names) => null;
         public enum TrackpadDirection { Center, Up, Down, Left, Right }
         public SteamVR_TrackedObject Tracking = new SteamVR_TrackedObject();
         public TrackpadDirection GetTrackpadDirection() => TrackpadDirection.Center;
@@ -86,11 +94,24 @@ namespace VRGIN.Core
         public static Mode Mode = new Mode();
         public static Inputs Input = new Inputs();
         public static CameraRig Camera = new CameraRig();
+        public static GameObject Manager = new GameObject("manager");
     }
     public class Inputs { public Mouse Mouse = new Mouse(); public Keyboard Keyboard = new Keyboard(); }
     public class Mouse
     {
         public bool Left, Right;
+        public bool Middle;
+        public int MoveCount;
+        public double CursorX, CursorY;
+        public void MiddleButtonDown() { Middle=true; }
+        public void MiddleButtonUp() { Middle=false; }
+        public void VerticalScroll(int amount) { }
+        public void MoveMouseToPositionOnVirtualDesktop(double x,double y)
+        {
+            MoveCount++; CursorX=x; CursorY=y;
+            UnityEngine.Input.mousePosition = new Vector3((float)(x/65535*Screen.width),
+                Screen.height-(float)(y/65535*Screen.height),0);
+        }
         public void LeftButtonDown() { Left = true; }
         public void LeftButtonUp() { Left = false; }
         public void RightButtonDown() { Right = true; }
@@ -108,6 +129,7 @@ namespace VRGIN.Core
         public static List<string> Messages = new List<string>();
         public static void Info(string message, params object[] args) { Messages.Add(message); }
         public static void Warn(string message) { Messages.Add(message); }
+        public static void Error(string message) { Messages.Add(message); }
     }
 }
 namespace KK_VR.Settings
@@ -146,6 +168,8 @@ namespace KK_VR.Interpreters
         protected bool[,] _pressedButtons = new bool[2,3];
         public bool IsTriggerPress(int i) => _pressedButtons[i,0];
         public bool IsBusy;
+        public int UIConfirms;
+        internal virtual bool ConfirmUI() { UIConfirms++; return true; }
         public List<string> Events = new List<string>();
         public Vector2 LeftStick;
         public float RightStick;
@@ -191,13 +215,14 @@ namespace KK_VR.Controls
         public static void ToggleState() { Toggles++; }
         public void AbandonGUI() { }
     }
+#if !REAL_MENU
     public class KoikMenuHandler
     {
         public static int Created;
         public static bool MenuInRange;
         public bool LaserVisible;
         public static int Submissions;
-        public static void SubmitSelectedUI() { Submissions++; }
+        public static bool SubmitSelectedUI() { Submissions++; return false; }
         private bool _pressed;
         public KoikMenuHandler(Controller owner) { Created++; }
         public bool CheckMenu() => MenuInRange;
@@ -210,4 +235,5 @@ namespace KK_VR.Controls
         public void OnTouchpad(bool down) { }
         public void SetLastDirection(TrackpadDirection direction) { }
     }
+#endif
 }

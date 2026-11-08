@@ -16,10 +16,11 @@ namespace UnityEngine
         public bool enabled=true, hit=true;
         public float distance=2f;
         public Vector2 uv=new Vector2(0.8f,0.25f);
+        public Func<Ray,bool> filter;
         public bool Raycast(Ray ray,out RaycastHit result,float range)
         {
             result=new RaycastHit { distance=distance, point=ray.origin+ray.direction*distance, textureCoord=uv };
-            return enabled && hit && distance>=0 && distance<=range;
+            return enabled && hit && distance>=0 && distance<=range && (filter==null || filter(ray));
         }
     }
     public class Shader : Object { public static Shader Find(string name)=>new Shader(); }

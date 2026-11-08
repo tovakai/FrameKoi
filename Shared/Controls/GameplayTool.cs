@@ -32,6 +32,7 @@ namespace KK_VR.Controls
         private readonly HashSet<string> _nativeHeld = new HashSet<string>();
         private bool _nativeTriggerMenuHeld;
         private bool _nativeAOnMenu;
+        private KoikMenuHandler _nativeAHandler;
         private static readonly string[] LeftNativeButtons =
         {
             "left_grip", "left_trigger", "left_stick_click", "left_bumper",
@@ -187,6 +188,7 @@ namespace KK_VR.Controls
                 OnNativeButton(name, false);
             _nativeTriggerMenuHeld = false;
             _nativeAOnMenu = false;
+            _nativeAHandler = null;
         }
 
         private bool NativeMenuInteractable()
@@ -267,14 +269,16 @@ namespace KK_VR.Controls
                 case "a":
                     if (down)
                     {
-                        _nativeAOnMenu = NativeMenuInteractable();
-                        if (_nativeAOnMenu) _menuHandler.OnTrigger(true);
+                        _nativeAHandler = KoikMenuHandler.FindTargetedPointer(_menuHandler);
+                        _nativeAOnMenu = _nativeAHandler != null;
+                        if (_nativeAOnMenu) _nativeAHandler.OnTrigger(true);
                         else if (!KoikMenuHandler.SubmitSelectedUI()) scene.ConfirmUI();
                     }
                     else
                     {
-                        if (_nativeAOnMenu) _menuHandler.OnTrigger(false);
+                        if (_nativeAOnMenu) _nativeAHandler?.OnTrigger(false);
                         _nativeAOnMenu = false;
+                        _nativeAHandler = null;
                     }
                     break;
                 case "b":

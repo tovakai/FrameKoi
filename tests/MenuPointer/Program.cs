@@ -72,6 +72,13 @@ static class Program
         other.Dispose();
         pointer.CheckMenu();
         pointer.OnTrigger(true);
+        pointer.OnTrigger(true);
+        pointer.OnTrigger(false);
+        Check(VR.Input.Mouse.Left,"A and trigger share a UI hold without premature release");
+        pointer.OnTrigger(false);
+        Check(!VR.Input.Mouse.Left,"last UI hold releases the button");
+        pointer.CheckMenu();
+        pointer.OnTrigger(true);
         near.gameObject.SetActive(false);
         far.gameObject.SetActive(false);
         Check(!pointer.CheckMenu() && !VR.Input.Mouse.Left,"panel loss releases held click");
@@ -80,7 +87,10 @@ static class Program
         far.IsOwned=true;
         far.transform.SetParent(right.transform,false);
         Check(pointer.CheckMenu(),"controller can point at its owned panel");
+        pointer.OnTrigger(true);
+        pointer.OnTrigger(true);
         pointer.ReleaseInput();
+        Check(!VR.Input.Mouse.Left,"cleanup releases overlapping trigger/A holds");
         Check(far.transform.parent==right.transform && far.IsOwned,"native cleanup preserves panel ownership");
         KoikSettings.FrameKoiPointerRange.Value=1f;
         Check(!pointer.CheckMenu(),"configured pointer range is respected");
@@ -95,6 +105,16 @@ static class Program
         Check((Laser(pointer).transform.forward-handRotation*Vector3.forward).sqrMagnitude<0.0001f,
             "pointer follows calibrated hand tracking rather than animated item or model tip");
         KK_VR.Holders.HandHolder.GetHands.Clear();
+        var nonAimingController=new Controller();
+        nonAimingController.transform.position=new Vector3(1,0,0);
+        var nonAiming=new KoikMenuHandler(nonAimingController);
+        far.GetComponent<Collider>().filter=ray=>ray.origin.x<0.5f;
+        Check(KoikMenuHandler.FindTargetedPointer(nonAiming)==pointer,
+            "right-hand A can confirm a panel targeted by the other hand");
+        right.Tracking.isValid=false;
+        Check(KoikMenuHandler.FindTargetedPointer(nonAiming)==null,"lost controller cannot retain UI confirmation target");
+        right.Tracking.isValid=true;
+        nonAiming.Dispose();
         EventSystem.current=null;
         Check(!KoikMenuHandler.SubmitSelectedUI(),"no UI selection produces no confirm click");
         var selected=new GameObject("button");

@@ -34,6 +34,8 @@ namespace KK_VR.Controls
         private RaycastHit? _lastPointerHit;
         private static KoikMenuHandler _mouseOwner;
         private static int _mouseReleaseFrame = -1;
+        private static readonly List<KoikMenuHandler> Pointers = new List<KoikMenuHandler>();
+        private int _triggerHolds;
         internal bool LaserVisible
         {
             get
@@ -113,6 +115,19 @@ namespace KK_VR.Controls
             Laser.useWorldSpace = true;
             Laser.SetWidth(0.002f, 0.002f);
             LaserVisible = false;
+            Pointers.Add(this);
+        }
+
+        internal static KoikMenuHandler FindTargetedPointer(KoikMenuHandler preferred)
+        {
+            // A is on the right controller, but the left hand can be aiming at
+            // the right wrist's panel. Confirm the actual pointed UI either way.
+            if (_mouseOwner != null && _mouseOwner._pressedButtons != 0 &&
+                _mouseOwner._owner.IsTracking && _mouseOwner.CheckMenu()) return _mouseOwner;
+            if (preferred != null && preferred._owner.IsTracking && preferred.CheckMenu()) return preferred;
+            foreach (var pointer in Pointers)
+                if (pointer != preferred && pointer._owner.IsTracking && pointer.CheckMenu()) return pointer;
+            return null;
         }
 
         enum Buttons
@@ -143,8 +158,7 @@ namespace KK_VR.Controls
 
         internal void ReleaseInput()
         {
-            if ((_pressedButtons & Buttons.Left) != 0) OnTrigger(false);
-            if ((_pressedButtons & Buttons.Middle) != 0) OnTouchpad(false);
+            ReleasePointerButtons();
             _lastDirection = Controller.TrackpadDirection.Center;
             _NextScrollTime = null;
             if (!FrameKoiNativeInput.Ready && _quad != null && _quad.IsOwned) AbandonGUI();
@@ -157,6 +171,7 @@ namespace KK_VR.Controls
         {
             ReleaseInput();
             if (_mouseOwner == this) _mouseOwner = null;
+            Pointers.Remove(this);
             if (Laser != null)
             {
                 UnityEngine.Object.Destroy(Laser.material);
@@ -176,12 +191,14 @@ namespace KK_VR.Controls
                     _mouseDownPosition = null;
                     UpdateMouse(_lastPointerHit.Value);
                 }
+                if (_triggerHolds++ != 0) return;
                 VR.Input.Mouse.LeftButtonDown();
                 _pressedButtons |= Buttons.Left;
                 _mouseDownPosition = Vector2.Scale(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y), _scaleVector);
             }
             else
             {
+                if (_triggerHolds == 0 || --_triggerHolds != 0) return;
                 if ((_pressedButtons & Buttons.Left) == 0) return;
                 VR.Input.Mouse.LeftButtonUp();
                 _pressedButtons &= ~Buttons.Left;
@@ -422,9 +439,11 @@ namespace KK_VR.Controls
 
         private void ReleasePointerButtons()
         {
+            _triggerHolds = 0;
             if ((_pressedButtons & Buttons.Left) != 0)
             {
-                OnTrigger(false);
+                VR.Input.Mouse.LeftButtonUp();
+                _mouseReleaseFrame = Time.frameCount + 1;
             }
             if ((_pressedButtons & Buttons.Right) != 0)
             {

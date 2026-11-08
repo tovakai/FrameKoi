@@ -158,7 +158,8 @@ Held UI clicks retain desktop cursor ownership through release so the other hand
 cannot drag them off target. Losing a panel releases the click and reacquires
 other active UI; native cleanup preserves wrist-panel ownership.
 
-A still never injects an unrestricted world click. It clicks a targeted panel,
+A still never injects an unrestricted world click. It clicks a panel targeted
+by either controller (so right-hand A can confirm the left hand's wrist-menu aim),
 submits an active selected Unity control, or uses a dialogue-only fallback.
 In text-only ADV the fallback uses the existing scroll-to-advance gesture.
 For dialogue choices, first confirm highlights a visible choice and the next

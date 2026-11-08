@@ -61,6 +61,7 @@ namespace VRGIN.Controls
         public Transform FindAttachPosition(params string[] names) => null;
         public enum TrackpadDirection { Center, Up, Down, Left, Right }
         public SteamVR_TrackedObject Tracking = new SteamVR_TrackedObject();
+        public bool IsTracking => Tracking.isValid;
         public TrackpadDirection GetTrackpadDirection() => TrackpadDirection.Center;
     }
 }
@@ -225,6 +226,7 @@ namespace KK_VR.Controls
         public bool LaserVisible;
         public static int Submissions;
         public static bool SubmitSelectedUI() { Submissions++; return false; }
+        public static KoikMenuHandler FindTargetedPointer(KoikMenuHandler preferred) => MenuInRange ? preferred : null;
         private bool _pressed;
         public KoikMenuHandler(Controller owner) { Created++; }
         public bool CheckMenu() => MenuInRange;

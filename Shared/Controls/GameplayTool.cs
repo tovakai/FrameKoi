@@ -50,9 +50,17 @@ namespace KK_VR.Controls
             HandleInput();
             // Only the right tracked controller owns yaw. The other controller's
             // axis remains available for future movement bindings.
-            if (_index == 1 && KoikGameInterp.SceneInput != null)
+            var sceneInput = KoikGameInterp.SceneInput;
+            if (sceneInput != null)
             {
-                KoikGameInterp.SceneInput.SetFrameKoiRightStick(Controller.GetAxis().x);
+                if (_index == 1)
+                {
+                    sceneInput.SetFrameKoiRightStick(Controller.GetAxis().x);
+                }
+                else if (_index == 0)
+                {
+                    sceneInput.SetFrameKoiLeftStick(Controller.GetAxis());
+                }
             }
             _gripMove?.HandleGrabbing();
         }

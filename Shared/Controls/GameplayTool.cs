@@ -1,4 +1,7 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
+using WindowsInput.Native;
+using KK_VR.Camera;
 using VRGIN.Controls.Tools;
 using VRGIN.Core;
 using KK_VR.Interpreters;
@@ -23,6 +26,18 @@ namespace KK_VR.Controls
         // Keep release routing paired with the mode selected on physical press.
         private bool _handOnlyGripHeld;
         private float _nextAxisDiagnosticAt;
+        private readonly HashSet<string> _nativeHeld = new HashSet<string>();
+        private bool _nativeTriggerMenuHeld;
+        private static readonly string[] LeftNativeButtons =
+        {
+            "left_grip", "left_trigger", "left_stick_click", "left_bumper",
+            "dpad_up", "dpad_down", "dpad_left", "dpad_right", "left_view"
+        };
+        private static readonly string[] RightNativeButtons =
+        {
+            "right_grip", "right_trigger", "right_stick_click", "right_bumper",
+            "a", "b", "x", "y", "right_menu"
+        };
 
         internal bool IsGrip => _gripMove != null;
 
@@ -32,6 +47,7 @@ namespace KK_VR.Controls
         }
         protected override void OnDisable()
         {
+            FlushNativeButtons();
             // A lost button-up during a scene or tool transition must not
             // leave the previous scene's grasp handler holding something.
             if (_handOnlyGripHeld && KoikGameInterp.SceneInput != null)
@@ -55,30 +71,159 @@ namespace KK_VR.Controls
         }
         protected override void OnUpdate()
         {
-            HandleInput();
-            // Only the right tracked controller owns yaw. The other controller's
-            // axis remains available for future movement bindings.
             var sceneInput = KoikGameInterp.SceneInput;
-            if (sceneInput != null)
+            if (FrameKoiNativeInput.Ready)
             {
-                if (_index == 1)
+                HandleNativeInput();
+                if (sceneInput != null)
                 {
-                    sceneInput.SetFrameKoiRightStick(Controller.GetAxis().x);
+                    if (_index == 1)
+                        sceneInput.SetFrameKoiRightStick(FrameKoiNativeInput.Analog("right_stick").x);
+                    else
+                        sceneInput.SetFrameKoiLeftStick(FrameKoiNativeInput.Analog("left_stick"));
                 }
-                else if (_index == 0)
+            }
+            else
+            {
+                if (_nativeHeld.Count != 0) FlushNativeButtons();
+                HandleInput();
+                if (sceneInput != null)
                 {
-                    sceneInput.SetFrameKoiLeftStick(Controller.GetAxis());
+                    if (_index == 1)
+                        sceneInput.SetFrameKoiRightStick(Controller.GetAxis().x);
+                    else
+                        sceneInput.SetFrameKoiLeftStick(Controller.GetAxis());
                 }
             }
             if (KoikSettings.FrameKoiAxisDiagnostics.Value &&
                 Time.unscaledTime >= _nextAxisDiagnosticAt)
             {
                 _nextAxisDiagnosticAt = Time.unscaledTime + 1f;
-                var axis = Controller.GetAxis();
-                VRLog.Info($"FrameKoi controller {_index} analog axis x={axis.x:F2}, y={axis.y:F2}");
+                var axis = FrameKoiNativeInput.Ready
+                    ? FrameKoiNativeInput.Analog(_index == 0 ? "left_stick" : "right_stick")
+                    : Controller.GetAxis();
+                VRLog.Info($"FrameKoi controller {_index} axis x={axis.x:F2}, y={axis.y:F2}, native={FrameKoiNativeInput.Ready}");
             }
             _gripMove?.HandleGrabbing();
         }
+
+        private void HandleNativeInput()
+        {
+            if (!FrameKoiNativeInput.Poll())
+            {
+                FlushNativeButtons();
+                return;
+            }
+
+            var buttons = _index == 0 ? LeftNativeButtons : RightNativeButtons;
+            foreach (var button in buttons)
+            {
+                bool pressed = FrameKoiNativeInput.Digital(button);
+                bool wasPressed = _nativeHeld.Contains(button);
+                if (pressed && !wasPressed)
+                {
+                    _nativeHeld.Add(button);
+                    OnNativeButton(button, true);
+                }
+                else if (!pressed && wasPressed)
+                {
+                    _nativeHeld.Remove(button);
+                    OnNativeButton(button, false);
+                }
+            }
+        }
+
+        private void FlushNativeButtons()
+        {
+            var held = new List<string>(_nativeHeld);
+            _nativeHeld.Clear();
+            foreach (var name in held)
+                OnNativeButton(name, false);
+            _nativeTriggerMenuHeld = false;
+        }
+
+        private void OnNativeButton(string name, bool down)
+        {
+            var scene = KoikGameInterp.SceneInput;
+            if (scene == null) return;
+            switch (name)
+            {
+                case "left_grip":
+                case "right_grip":
+                    // Never starts GripMove: grips belong exclusively to the hands.
+                    if (down)
+                        scene.OnButtonDown(_index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
+                    else
+                        scene.OnButtonUp(_index, EVRButtonId.k_EButton_Grip, TrackpadDirection.Center);
+                    break;
+                case "left_trigger":
+                case "right_trigger":
+                    if (down)
+                    {
+                        _nativeTriggerMenuHeld = !_menu.IsAttached && _menuHandler.CheckMenu();
+                        if (_nativeTriggerMenuHeld)
+                            _menuHandler.OnTrigger(true);
+                        else
+                            scene.OnButtonDown(_index, EVRButtonId.k_EButton_SteamVR_Trigger, TrackpadDirection.Center);
+                    }
+                    else
+                    {
+                        if (_nativeTriggerMenuHeld)
+                            _menuHandler.OnTrigger(false);
+                        else
+                            scene.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Trigger, TrackpadDirection.Center);
+                        _nativeTriggerMenuHeld = false;
+                    }
+                    break;
+                case "left_bumper":
+                case "right_bumper":
+                    // Existing scene-specific secondary / item interaction.
+                    if (down)
+                        scene.OnButtonDown(_index, EVRButtonId.k_EButton_SteamVR_Touchpad, TrackpadDirection.Center);
+                    else
+                        scene.OnButtonUp(_index, EVRButtonId.k_EButton_SteamVR_Touchpad, TrackpadDirection.Center);
+                    break;
+                case "left_stick_click":
+                    if (down) scene.FrameKoiSprintClick();
+                    break;
+                case "right_stick_click":
+                    if (down && SmoothMover.Instance != null) SmoothMover.Instance.MakeUpright();
+                    break;
+                case "dpad_up":
+                case "dpad_down":
+                case "dpad_left":
+                case "dpad_right":
+                    TrackpadDirection direction;
+                    switch (name)
+                    {
+                        case "dpad_up": direction = TrackpadDirection.Up; break;
+                        case "dpad_down": direction = TrackpadDirection.Down; break;
+                        case "dpad_left": direction = TrackpadDirection.Left; break;
+                        default: direction = TrackpadDirection.Right; break;
+                    }
+                    if (down) scene.OnDirectionDown(_index, direction);
+                    else scene.OnDirectionUp(_index, direction);
+                    break;
+                case "a":
+                    if (down) VR.Input.Mouse.LeftButtonDown();
+                    else VR.Input.Mouse.LeftButtonUp();
+                    break;
+                case "b":
+                    if (down) VR.Input.Keyboard.KeyDown(VirtualKeyCode.ESCAPE);
+                    else VR.Input.Keyboard.KeyUp(VirtualKeyCode.ESCAPE);
+                    break;
+                case "x":
+                    if (down) VR.Input.Mouse.RightButtonDown();
+                    else VR.Input.Mouse.RightButtonUp();
+                    break;
+                case "y":
+                case "left_view":
+                case "right_menu":
+                    if (down) KoikMenuTool.ToggleState();
+                    break;
+            }
+        }
+
         internal void OnRenderModelLoaded()
         {
             this.enabled = true;

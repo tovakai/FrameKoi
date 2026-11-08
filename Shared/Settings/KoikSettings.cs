@@ -124,6 +124,8 @@ namespace KK_VR.Settings
         public static ConfigEntry<bool> FrameKoiRightStickTurning { get; private set; }
         public static ConfigEntry<float> FrameKoiStickDeadzone { get; private set; }
         public static ConfigEntry<bool> FrameKoiAxisDiagnostics { get; private set; }
+        public static ConfigEntry<bool> FrameKoiNativeInputEnabled { get; private set; }
+        public static ConfigEntry<string> FrameKoiActionManifestPath { get; private set; }
         public static ConfigEntry<bool> FrameKoiExperimentalStickMove { get; private set; }
         public static ConfigEntry<float> FrameKoiMoveSpeed { get; private set; }
         public static ConfigEntry<float> FrameKoiMoveDeadzone { get; private set; }
@@ -369,6 +371,12 @@ namespace KK_VR.Settings
 
             FrameKoiAxisDiagnostics = config.Bind(SectionRoaming, "FrameKoi axis diagnostics", false,
                 "Log both controller thumbstick axes at most once per second for SteamVR binding troubleshooting. Disable after testing.");
+
+            FrameKoiNativeInputEnabled = config.Bind(SectionRoaming, "FrameKoi native SteamVR input (experimental)", false,
+                "Use modern Frame controller action bindings rather than legacy VRGIN button polling. Requires a manifest and game restart. OFF until headset-tested.");
+
+            FrameKoiActionManifestPath = config.Bind(SectionRoaming, "FrameKoi native input manifest path", "",
+                "Optional absolute path to actions.json. When empty, defaults to BepInEx/plugins/FrameKoi/SteamVR/actions.json.");
 
             FrameKoiExperimentalStickMove = config.Bind(SectionRoaming, "FrameKoi experimental left stick movement", false,
                 "EXPERIMENTAL. Move the VR origin and protagonist together in the head-facing direction. OFF by default: this path has not been validated against the game's collision and navigation logic.");

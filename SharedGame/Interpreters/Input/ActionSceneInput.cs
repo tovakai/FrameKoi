@@ -396,6 +396,11 @@ namespace KK_VR.Interpreters
             HideMaleHead.ForceHideHead = false;
         }
 
+        internal override void FrameKoiSprintClick()
+        {
+            if (_walking) ToggleDash();
+        }
+
         private void ToggleDash()
         {
             if (IsButtonPressed(Pressed.Shift))

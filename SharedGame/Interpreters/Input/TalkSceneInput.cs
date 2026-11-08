@@ -52,16 +52,17 @@ namespace KK_VR.Interpreters
 
         internal override bool ConfirmUI()
         {
-            if (_interpreter.IsStart) return false;
-            var adv = IsADV;
+            if (_interpreter.IsStart || talkScene == null) return false;
+            var adv = advScene != null && IsADV;
             if (adv && !IsADVChoice)
             {
                 // Existing ADV advance gesture, scoped to active dialogue.
                 VR.Input.Mouse.VerticalScroll(-1);
                 return true;
             }
-            var buttons = GetRelevantButtons(GetState(), adv)
-                .Where(b => b != null && b.isActiveAndEnabled && b.IsInteractable()).ToArray();
+            var relevant = GetRelevantButtons(GetState(), adv);
+            if (relevant == null) return false;
+            var buttons = relevant.Where(b => b != null && b.isActiveAndEnabled && b.IsInteractable()).ToArray();
             if (buttons.Length == 0) return false;
             var selected = GetSelectedButton(buttons, adv);
             if (selected == null)

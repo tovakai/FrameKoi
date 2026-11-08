@@ -67,8 +67,7 @@ namespace KK_VR.Controls
             var selectable = selected != null ? selected.GetComponent<Selectable>() : null;
             if (selectable != null && selectable.IsActive() && selectable.IsInteractable())
             {
-                ExecuteEvents.Execute(selected, new BaseEventData(system), ExecuteEvents.submitHandler);
-                return true;
+                return ExecuteEvents.Execute(selected, new BaseEventData(system), ExecuteEvents.submitHandler);
             }
             // No selected UI means no action. Never synthesize a world LMB click.
             return false;

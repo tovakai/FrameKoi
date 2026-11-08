@@ -52,8 +52,9 @@ ActionGame.Chara.Mover.Main.Update and replaces its direction-normalization
 step. The original movement regulation, cursor/pause and event gates, animator
 speed path and NavMeshAgent.Move remain in place. The game's gated movement
 request is preserved; looking straight up/down falls back to the origin's
-heading rather than disabling movement. Disabled/off-navmesh agents cannot take
-the game's direct-position fallback under native stick control.
+heading rather than disabling movement. Disabled/off-navmesh agents cannot
+produce displacement through the game's direct-position fallback under native
+stick control.
 
 Movement is head-relative with radial deadzone (default 0.2), continuous
 diagonals and analog speed. FrameKoi game movement scale defaults to 1.0

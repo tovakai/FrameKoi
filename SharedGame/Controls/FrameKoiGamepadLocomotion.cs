@@ -104,6 +104,7 @@ namespace KK_VR.Controls
         }
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
+            FrameKoiGamepadLocomotion.Available = false;
             var code = instructions.ToList();
             var normalize = AccessTools.PropertyGetter(typeof(Vector3), "normalized");
             var inputType = AccessTools.TypeByName("ActionGame.ActionInput");

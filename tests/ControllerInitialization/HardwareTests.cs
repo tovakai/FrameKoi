@@ -101,6 +101,10 @@ static class HardwareTests
         FrameKoiGamepadLocomotion.RebaseFollow();
         input.SetFrameKoiLeftStick(new Vector2(1,1));
         var mover=new ActionGame.Chara.Mover.Main();
+        mover.ThrowInUpdate=true;
+        try { mover.Update(); } catch (InvalidOperationException) { }
+        check(!FrameKoiGamepadLocomotion.InPlayerUpdate,"exception restores game-update input scope");
+        mover.ThrowInUpdate=false;
         Time.frameCount++;
         mover.Update();
         check(player.RawPosition.x>0 && player.RawPosition.z>0 && player.agent.Moves>0,"stick reaches original NavMeshAgent path");
@@ -171,6 +175,15 @@ static class HardwareTests
             "uncrouch reconciles both keys after config change");
         input.OnDisable();
         KoikSettings.FrameKoiGameLocomotion.Value=true;
+        var transpiler=typeof(FrameKoiPlayerMoverPatch).GetMethod("Transpiler",BindingFlags.NonPublic|BindingFlags.Static);
+        transpiler.Invoke(null,new object[] { new System.Collections.Generic.List<CodeInstruction>() });
+        check(!FrameKoiGamepadLocomotion.Available && !FrameKoiGamepadLocomotion.Enabled,
+            "unknown mover pattern fails closed even after a previous successful install");
+        input.OnButtonDown(0,Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger,TrackpadDirection.Center);
+        check(VR.Input.Mouse.Left,"legacy trigger walking remains available on hook mismatch");
+        input.OnButtonUp(0,Valve.VR.EVRButtonId.k_EButton_SteamVR_Trigger,TrackpadDirection.Center);
+        check(!VR.Input.Mouse.Left,"legacy fallback releases synthetic walking input");
+        input.OnDisable();
         harmony.UnpatchAll(harmony.Id);
     }
 }

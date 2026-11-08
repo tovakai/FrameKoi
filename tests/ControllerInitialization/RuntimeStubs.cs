@@ -228,10 +228,11 @@ namespace ActionGame.Chara.Mover
 {
     public class Main
     {
-        public bool mouseMoving, AllowMove=true;
+        public bool mouseMoving, AllowMove=true, ThrowInUpdate;
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Update()
         {
+            if (ThrowInUpdate) throw new InvalidOperationException("simulated game exception");
             ActionInput.PlayerMove(ref mouseMoving);
             mouseMoving=mouseMoving && AllowMove;
             var direction=mouseMoving ? VRGIN.Core.VR.Camera.Head.forward : Vector3.zero;

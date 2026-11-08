@@ -32,10 +32,17 @@ jobs:
         shell: pwsh
         run: |
           $project = "VRGIN_OpenXR/VRGIN_OpenXR.csproj"
-          $source = Get-Content -Path $project -Raw
-          $patched = [regex]::Replace($source, '(<PackageReference Include="IllusionLibs\\.KoikatsuSunshine\\.UnityEngine\\.[^"]+")\\s*/>', '$1 Version="2019.4.9" />')
-          if ($source -eq $patched) { throw "No VRGIN_OpenXR package references were patched" }
-          Set-Content -Path $project -Value $patched
+          [xml]$document = Get-Content -Path $project
+          $refs = @($document.SelectNodes('//*[local-name()="PackageReference"]'))
+          $patched = 0
+          foreach ($ref in $refs) {
+            if ($ref.Include -like "IllusionLibs.KoikatsuSunshine.UnityEngine.*" -and -not $ref.Version) {
+              $ref.SetAttribute("Version", "2019.4.9")
+              $patched++
+            }
+          }
+          if ($patched -ne 14) { throw "Expected 14 Unity packages, updated $patched" }
+          $document.Save((Resolve-Path $project).Path)
       - name: Build Sunshine main-game plugin
         run: dotnet build KKS_VR/KKS_Game.csproj --configuration Release --verbosity minimal
       - name: Build Koikatsu main-game plugin

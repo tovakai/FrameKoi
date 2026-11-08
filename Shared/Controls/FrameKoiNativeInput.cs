@@ -167,9 +167,10 @@ namespace KK_VR.Controls
             handle = 0;
             if (!_ready || String.IsNullOrEmpty(name)) return false;
             if (Handles.TryGetValue(name, out handle)) return handle != InvalidHandle;
+            ulong resolved = 0;
             var result = CallWithUtf8(ActionPrefix + name,
-                p => _api.GetActionHandle(p, ref handle));
-            if (result != 0) handle = InvalidHandle;
+                p => _api.GetActionHandle(p, ref resolved));
+            handle = result == 0 ? resolved : InvalidHandle;
             Handles[name] = handle;
             return handle != InvalidHandle;
         }

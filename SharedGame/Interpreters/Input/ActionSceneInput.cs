@@ -105,7 +105,7 @@ namespace KK_VR.Interpreters
         internal override void HandleInput()
         {
             base.HandleInput();
-            if (_continuousRotation != 0f)
+            if (_continuousRotation != 0f && KoikSettings.FrameKoiTurnMode.Value == KoikSettings.FrameKoiTurningMode.Smooth)
             {
                 ContinuousRotation(_continuousRotation);
             }
@@ -173,13 +173,18 @@ namespace KK_VR.Interpreters
 
         private void Rotation(float degrees)
         {
-            if (GameSettings.ContinuousRotation.Value)
+            switch (KoikSettings.FrameKoiTurnMode.Value)
             {
-                _continuousRotation = degrees;
-            }
-            else
-            {
-                SnapRotation(degrees);
+                case KoikSettings.FrameKoiTurningMode.Smooth:
+                    _continuousRotation = Mathf.Sign(degrees);
+                    break;
+                case KoikSettings.FrameKoiTurningMode.Snap:
+                    _continuousRotation = 0f;
+                    SnapRotation(degrees);
+                    break;
+                default:
+                    _continuousRotation = 0f;
+                    break;
             }
         }
 
@@ -206,7 +211,8 @@ namespace KK_VR.Interpreters
             var origin = VR.Camera.Origin;
             var head = VR.Camera.Head;
             var oldPos = head.position;
-            origin.rotation = Quaternion.Euler(0f, degrees * (Time.deltaTime * 2f), 0f) * origin.rotation;
+            var deltaTime = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
+            origin.rotation = Quaternion.Euler(0f, degrees * KoikSettings.FrameKoiSmoothTurnSpeed.Value * deltaTime, 0f) * origin.rotation;
             origin.position += oldPos - head.position;
 
             if (!_walking)
@@ -301,6 +307,7 @@ namespace KK_VR.Interpreters
                 ReleaseButton(button);
             }
             _walking = false;
+            _continuousRotation = 0f;
             _standing = true;
             _crouching = false;
             HideMaleHead.ForceHideHead = false;

@@ -1,6 +1,6 @@
 # Steam Frame native input: physical mapping and integration gate
 
-This directory contains a **proposed native SteamVR Input mapping**. These JSON files are **NOT loaded by the current VRGIN runtime**. Installing them by themselves does not make the extra buttons work.
+This directory contains an **experimental native SteamVR Input mapping** and its accompanying runtime bridge (`Shared/Controls/FrameKoiNativeInput.cs`). The native mode is **OFF by default**. The bundled older VRGIN API lacks `IVRInput`, so FrameKoi now uses a separate interop bridge for the modern SteamVR action API. No game build or Frame headset test has been completed.
 
 ## Physical controls and assigned logical actions
 
@@ -29,7 +29,29 @@ This directory contains a **proposed native SteamVR Input mapping**. These JSON 
 
 Steam Frame has D-pad on the LEFT and A/B/X/Y on the RIGHT. Do not assume the same face buttons exist on both hands. Preserve system buttons for SteamVR.
 
-## Prerequisites before testing in-game
+## Current implementation and how to enable it
+
+- The 20 physical inputs are declared in `actions.json` and `bindings_frame_controller.json`.
+- `GameplayTool` has a native dispatcher for 18 digital actions, with paired press/release and per-hand grip delivery. The independent left and right stick vector actions feed existing scene hooks.
+- To enable, set `1. Roaming / FrameKoi native SteamVR input (experimental) = true` in BepInEx ConfigurationManager (then restart).
+- The loader defaults to `SteamVR/actions.json` **next to the installed main-game plugin DLL** (e.g. `BepInEx/plugins/KK_MainGameVR/SteamVR/actions.json`). The release packaging script has been updated to include it. The alternate `FrameKoi native input manifest path` accepts an absolute path.
+- If native initialization fails, the legacy polling path remains available. **Do not combine both input systems at once.**
+- Native-mode shortcuts currently are: shoulders = scene's previous touchpad click, View/Menu/Y = toggle floating menu, A = mouse left, B = Escape, X = mouse right, left stick click = toggle roaming sprint, right stick click = upright, D-pad = directional scene actions. Trigger actions retain menu/scene context. Both grips are hand-only.
+- Roaming left-stick movement remains experimental and **disabled by default** because direct VR-origin translation has not been validated against collision geometry.
+
+## First hardware test gate
+
+1. Compile both main-game projects with game-specific package dependencies and submodules present.
+2. Start with legacy mode (native disabled); confirm ordinary movement and hand interactions still initialize.
+3. Enable native mode and verify the SteamVR binding UI recognizes `frame_controller` and all 20 named actions.
+4. Confirm each digital button down/up and left/right analog vector, then test simultaneous grips, menu proximity, scene transitions, and disconnect/reconnect.
+5. Disable native mode and revert to legacy if the action manifest API fails on Proton.
+
+**Not yet tested:** managed/native ABI compatibility, the startup timing requirement (manifest must be registered before SteamVR event polling), SteamVR's mapping of the Frame inputs, and full game behavior. These are not verified just because the source is committed.
+
+## Remaining validation risks
+
+
 
 1. Replace or upgrade VRGIN's old OpenVR managed API, which currently has **no CVRInput / IVRInput bindings**. The modern SteamVR Input interface needs to exist. Do not use guessed EVRButtonId values for the extra buttons.
 2. Set the manifest path to an **absolute** `SteamVR/actions.json` before SteamVR input event polling. Resolve the on-disk manifest relative to the plugin installation rather than assuming a working directory.
@@ -39,6 +61,6 @@ Steam Frame has D-pad on the LEFT and A/B/X/Y on the RIGHT. Do not assume the sa
 6. Package manifest + binding file in release installation, and verify SteamVR's bindings UI sees the `frame_controller` profile.
 7. Test on actual Steam Frame under Proton. Validate press/hold/release for all 18 digital actions, independent X/Y axes, scene transitions, lost tracking, simultaneous two-hand grips, and menu proximity.
 
-**Current status:** All 20 native physical inputs have JSON binding *declarations*, not a live runtime mapping. The existing analog and grip changes use the legacy API. **Do not call this test-ready yet.**
+**Current status:** All 20 native physical inputs now have binding declarations and dispatcher paths, but native mode is still opt-in and **uncompiled/untested**.
 
 References: https://partner.steamgames.com/doc/steamhardware/steamframe/input and https://github.com/ValveSoftware/openvr/wiki/SteamVR-Input.

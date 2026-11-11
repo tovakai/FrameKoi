@@ -55,7 +55,10 @@ The game still renders its original dialogue/HUD content through VRGIN.
 No dialogue scripts, choice logic or HUD data are replaced.
 
 Entering dialogue automatically opens a world-space panel. Defaults: 1.75 m
-distance, 25 degrees right, 0.2 m below eye level, 0.65 m panel height. Negative
+distance, 25 degrees right, 0.2 m below eye level, 36 degrees tall. A character
+in front pulls the panel in to 0.25 m in front of her (minimum 0.45 m). Size is
+angular, so text stays sharp at any distance: the ~900-row UI texture has no
+mipmaps and aliases badly when squeezed below ~35 degrees. Negative
 side angle chooses the left. Placement is sampled on open, once again when the
 dialogue camera setup settles, and on explicit recenter. It does not follow
 head rotation every frame. On exit, the previous roaming HUD state returns.
@@ -82,7 +85,7 @@ All new options are in 0. General:
 | FrameKoi dialogue distance | 1.75 m |
 | FrameKoi dialogue side angle | +25 degrees (right) |
 | FrameKoi dialogue vertical offset | -0.2 m |
-| FrameKoi dialogue panel height | 0.65 m |
+| FrameKoi menu panel angular height | 36 degrees at any distance (sharp text needs ~35+) |
 | FrameKoi fullscreen HUD width | 90 degrees |
 | FrameKoi VR anti-aliasing | X4 MSAA (GameDefault, Off, X2, X4, X8) |
 | FrameKoi roaming/scene/menu binding overrides | Empty, use defaults |

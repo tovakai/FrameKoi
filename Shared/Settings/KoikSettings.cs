@@ -132,7 +132,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<float> FrameKoiDialogueDistance { get; private set; }
         public static ConfigEntry<float> FrameKoiDialogueSideAngle { get; private set; }
         public static ConfigEntry<float> FrameKoiDialogueVertical { get; private set; }
-        public static ConfigEntry<float> FrameKoiDialogueHeight { get; private set; }
+        public static ConfigEntry<float> FrameKoiPanelAngle { get; private set; }
         public static ConfigEntry<float> FrameKoiHudAngle { get; private set; }
         public static ConfigEntry<FrameKoiMsaaMode> FrameKoiMsaa { get; private set; }
         public static ConfigEntry<string> FrameKoiRoamingBindings { get; private set; }
@@ -384,8 +384,10 @@ namespace KK_VR.Settings
                 new ConfigDescription("Positive degrees place the panel to the right; negative to the left.", new AcceptableValueRange<float>(-40f, 40f)));
             FrameKoiDialogueVertical = config.Bind(SectionGeneral, "FrameKoi dialogue vertical offset", -0.2f,
                 new ConfigDescription("Panel center relative to eye height in meters.", new AcceptableValueRange<float>(-0.7f, 0.3f)));
-            FrameKoiDialogueHeight = config.Bind(SectionGeneral, "FrameKoi dialogue panel height", 0.65f,
-                new ConfigDescription("Panel height in meters. Width follows the original UI aspect ratio.", new AcceptableValueRange<float>(0.3f, 1.2f)));
+            FrameKoiPanelAngle = config.Bind(SectionGeneral, "FrameKoi menu panel angular height", 36f,
+                new ConfigDescription("Vertical size in degrees of the dialogue/menu panel, at any distance. The game UI texture has " +
+                    "about 900 rows; below roughly 35 degrees it is squeezed into fewer headset pixels and text becomes jagged.",
+                    new AcceptableValueRange<float>(15f, 60f)));
             FrameKoiHudAngle = config.Bind(SectionGeneral, "FrameKoi fullscreen HUD width", 90f,
                 new ConfigDescription("Angular width in degrees of the display-only roaming HUD.", new AcceptableValueRange<float>(60f, 110f)));
             FrameKoiMsaa = config.Bind(SectionGeneral, "FrameKoi VR anti-aliasing", FrameKoiMsaaMode.X4,

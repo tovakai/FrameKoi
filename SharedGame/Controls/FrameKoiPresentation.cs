@@ -65,7 +65,8 @@ namespace KK_VR.Controls
                 _panel.transform.SetParent(VR.Mode.Right.transform, false);
                 _panel.transform.localPosition = new Vector3(0f, 0.1f, 0.15f);
                 _panel.transform.localRotation = Quaternion.Euler(45f, 0f, 0f);
-                var height = KoikSettings.FrameKoiDialogueHeight.Value;
+                // Legacy wrist-menu size: read at close range, so text stays sharp.
+                const float height = 0.3f;
                 _panel.transform.localScale = new Vector3(height * Screen.width / Screen.height, height, 1f);
             }
             else
@@ -75,13 +76,15 @@ namespace KK_VR.Controls
                 _panel.transform.SetParent(null, true);
                 var configured = KoikSettings.FrameKoiDialogueDistance.Value;
                 var distance = DialogueDistance(configured, CharacterAhead?.Invoke(head, configured + 0.5f));
-                // Keep the configured angular size when pulled closer.
                 var scale = configured > 0f ? distance / configured : 1f;
                 var yaw = Quaternion.Euler(0f, head.eulerAngles.y + KoikSettings.FrameKoiDialogueSideAngle.Value, 0f);
                 var position = head.position + yaw * Vector3.forward * distance +
                     Vector3.up * KoikSettings.FrameKoiDialogueVertical.Value * scale;
                 _panel.transform.SetPositionAndRotation(position, Quaternion.LookRotation(position - head.position, Vector3.up));
-                var height = KoikSettings.FrameKoiDialogueHeight.Value * scale;
+                // Sized by angle so the UI texture is never heavily minified:
+                // it has no mipmaps, and squeezing its rows into fewer headset
+                // pixels turns text into unreadable aliasing at any distance.
+                var height = PanelHeight(distance, KoikSettings.FrameKoiPanelAngle.Value);
                 _panel.transform.localScale = new Vector3(height * Screen.width / Screen.height, height, 1f);
             }
             // GUIQuad.Start can update aspect, but preserves the requested height.
@@ -96,6 +99,9 @@ namespace KK_VR.Controls
         // Talk cameras sit well under a metre from the partner, so a fixed
         // distance put the panel behind her. Stay just in front of whoever is
         // ahead, never farther than configured.
+        internal static float PanelHeight(float distance, float degrees) =>
+            2f * distance * (float)System.Math.Tan(degrees * System.Math.PI / 360.0);
+
         internal static float DialogueDistance(float configured, float? characterAhead)
         {
             if (!characterAhead.HasValue) return configured;

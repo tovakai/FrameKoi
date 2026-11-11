@@ -195,9 +195,11 @@ namespace KK_VR.Controls
                     UpdateMouse(_lastPointerHit.Value);
                 }
                 if (_triggerHolds++ != 0) return;
-                if (!FrameKoiNativeInput.Ready || !BeginDirectUI())
+                // IMGUI windows (plugin settings) only respond to real mouse input,
+                // and a direct uGUI click would land on game UI underneath them.
+                if (!FrameKoiNativeInput.Ready || FrameKoiUiPolicy.MouseClicks || !BeginDirectUI())
                 {
-                    if (FrameKoiNativeInput.Ready && (!KoikSettings.FrameKoiCompatibilityInput.Value || !KoikSettings.FrameKoiLegacyUiClicks.Value))
+                    if (FrameKoiNativeInput.Ready && !FrameKoiUiPolicy.MouseClicks && (!KoikSettings.FrameKoiCompatibilityInput.Value || !KoikSettings.FrameKoiLegacyUiClicks.Value))
                     { _triggerHolds = 0; if (_mouseOwner == this) _mouseOwner = null; return; }
                     VR.Input.Mouse.LeftButtonDown();
                 }

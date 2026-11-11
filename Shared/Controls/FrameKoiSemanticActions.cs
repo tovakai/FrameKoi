@@ -8,7 +8,7 @@ namespace KK_VR.Controls
     {
         None, Grab, HandAction, SelectUI, Interact, Confirm, Cancel, Pause,
         Sprint, Recenter, Crouch, QuickTravel, NextPeriod, Primary, Secondary,
-        Up, Down, Left, Right, ToggleHUD, SceneMenu, RecenterUI
+        Up, Down, Left, Right, ToggleHUD, SceneMenu, RecenterUI, SettingsMenu
     }
 
     internal sealed class FrameKoiContext
@@ -76,6 +76,7 @@ namespace KK_VR.Controls
                 bindings.Set(profile, "dpad_right", FrameKoiAction.Right);
                 bindings.Set(profile, "left_view", FrameKoiAction.SceneMenu);
                 bindings.Set(profile, "right_menu", FrameKoiAction.SceneMenu);
+                bindings.Set(profile, "left_view" + FrameKoiContextRouter.HoldSuffix, FrameKoiAction.SettingsMenu);
             }
             bindings.Set(FrameKoiProfile.Roaming, "a", FrameKoiAction.Interact);
             bindings.Set(FrameKoiProfile.Roaming, "y", FrameKoiAction.Crouch);
@@ -97,6 +98,13 @@ namespace KK_VR.Controls
     internal sealed class FrameKoiContextRouter
     {
         private sealed class Hold { internal int Hand; internal Action Release; }
+        // A button with a "<button>:hold" binding waits: release before
+        // HoldSeconds fires its normal action, holding fires the hold action.
+        private sealed class Pending { internal int Hand; internal string Button; internal float Since; internal FrameKoiContext Context; }
+        internal const string HoldSuffix = ":hold";
+        internal float HoldSeconds = 0.6f;
+        internal Func<float> Clock = () => 0f;
+        private readonly Dictionary<string, Pending> _pending = new Dictionary<string, Pending>();
         private readonly IFrameKoiActionSink _sink;
         private readonly Dictionary<string, Hold> _holds = new Dictionary<string, Hold>();
         private readonly HashSet<string> _physical = new HashSet<string>();
@@ -120,6 +128,7 @@ namespace KK_VR.Controls
             foreach (var key in _physical) _quarantine.Add(key);
             var previous = Context;
             Context = next;
+            _pending.Clear();
             _sink.Neutralize(previous);
             ReleaseAll();
         }
@@ -128,12 +137,46 @@ namespace KK_VR.Controls
             var key = Key(hand, button);
             if (!down)
             {
+                Pending pending;
+                if (_pending.TryGetValue(key, out pending))
+                {
+                    // Short press of a hold-capable button: fire the normal action as a tap.
+                    _pending.Remove(key);
+                    // Released just below; a tap is a press immediately followed by release.
+                    if (ReferenceEquals(pending.Context, Context) && !Context.Suspended)
+                        Fire(key, hand, Bindings.Resolve(Context.Profile, button));
+                }
                 _physical.Remove(key); _quarantine.Remove(key);
                 Release(key);
                 return;
             }
             if (!_physical.Add(key) || _quarantine.Contains(key) || Context == null || Context.Suspended) return;
-            var action = Bindings.Resolve(Context.Profile, button);
+            if (Bindings.Resolve(Context.Profile, button + HoldSuffix) != FrameKoiAction.None)
+            {
+                _pending[key] = new Pending { Hand = hand, Button = button, Since = Clock(), Context = Context };
+                return;
+            }
+            Fire(key, hand, Bindings.Resolve(Context.Profile, button));
+        }
+        // Fires hold actions whose button has been held long enough.
+        internal void Tick()
+        {
+            if (_pending.Count == 0) return;
+            var now = Clock();
+            List<string> due = null;
+            foreach (var entry in _pending)
+                if (now - entry.Value.Since >= HoldSeconds) (due ??= new List<string>()).Add(entry.Key);
+            if (due == null) return;
+            foreach (var key in due)
+            {
+                var pending = _pending[key];
+                _pending.Remove(key);
+                if (!ReferenceEquals(pending.Context, Context) || Context.Suspended) continue;
+                Fire(key, pending.Hand, Bindings.Resolve(Context.Profile, pending.Button + HoldSuffix));
+            }
+        }
+        private void Fire(string key, int hand, FrameKoiAction action)
+        {
             if (action == FrameKoiAction.None) return;
             if (Context.Blocking && (action == FrameKoiAction.Grab || action == FrameKoiAction.HandAction)) return;
             var context = Context;
@@ -146,6 +189,10 @@ namespace KK_VR.Controls
         }
         internal void Disconnect(int hand)
         {
+            var prefix = hand + ":";
+            var stale = new List<string>();
+            foreach (var key in _pending.Keys) if (key.StartsWith(prefix, StringComparison.Ordinal)) stale.Add(key);
+            foreach (var key in stale) _pending.Remove(key);
             var keys = new List<string>();
             foreach (var key in _physical)
                 if (key.StartsWith(hand + ":", StringComparison.Ordinal)) { _quarantine.Add(key); keys.Add(key); }
@@ -170,6 +217,7 @@ namespace KK_VR.Controls
         }
         internal void Reset()
         {
+            _pending.Clear();
             foreach (var key in _physical) _quarantine.Add(key);
             _sink.Neutralize(Context);
             ReleaseAll();
@@ -190,5 +238,7 @@ namespace KK_VR.Controls
     {
         internal static bool Interactive = true;
         internal static object FocusRoot;
+        // Bumper clicks drive the real mouse (an IMGUI window is in front).
+        internal static bool MouseClicks;
     }
 }

@@ -127,6 +127,25 @@ static class Program
         ui.Sync(FrameKoiProfile.DialogueMenu,true,false,true,owner,true);
         Check(ui.Mode==FrameKoiPanelMode.Hidden&&!panel.gameObject.activeSelf,"loading/focus suspension hides presentation");
         ui.Dispose();
+        // View: tap keeps its normal action (on release); hold opens plugin settings.
+        var holdSink=new Sink();var holdRouter=new FrameKoiContextRouter(holdSink,FrameKoiBindings.Defaults());
+        var now=0f;holdRouter.Clock=()=>now;
+        holdRouter.Change(Context(FrameKoiProfile.Roaming,new object()));holdSink.Events.Clear();
+        holdRouter.Sample(0,"left_view",true);holdRouter.Tick();
+        Check(holdSink.Events.Count==0,"hold-capable button waits instead of firing on press");
+        now=0.2f;holdRouter.Tick();holdRouter.Sample(0,"left_view",false);
+        Check(string.Join(",",holdSink.Events)=="down:0:ToggleHUD,up:0:ToggleHUD","short View press fires its normal action as a tap");
+        holdSink.Events.Clear();now=1f;holdRouter.Sample(0,"left_view",true);
+        now=1.5f;holdRouter.Tick();Check(holdSink.Events.Count==0,"no hold action before the threshold");
+        now=1.7f;holdRouter.Tick();Check(string.Join(",",holdSink.Events)=="down:0:SettingsMenu","View hold opens plugin settings");
+        holdRouter.Tick();holdRouter.Sample(0,"left_view",false);
+        Check(string.Join(",",holdSink.Events)=="down:0:SettingsMenu,up:0:SettingsMenu","hold fires once and no tap follows it");
+        holdSink.Events.Clear();now=3f;holdRouter.Sample(0,"left_view",true);
+        holdRouter.Change(Context(FrameKoiProfile.DialogueMenu,new object()));now=5f;holdRouter.Tick();holdRouter.Sample(0,"left_view",false);
+        Check(!holdSink.Events.Exists(e=>e.StartsWith("down")),"context change cancels a pending hold and its tap");
+        var holdOverride=FrameKoiBindings.Defaults();holdOverride.Override(FrameKoiProfile.Roaming,"left_view:hold=None");
+        holdRouter.Bindings=holdOverride;holdRouter.Change(Context(FrameKoiProfile.Roaming,new object()));holdSink.Events.Clear();
+        holdRouter.Sample(0,"left_view",true);Check(holdSink.Events.Contains("down:0:ToggleHUD"),"removing the hold binding restores fire-on-press");
         Check(FrameKoiPresentation.DialogueDistance(1.75f,null)==1.75f,"no character keeps configured dialogue distance");
         Check(Math.Abs(FrameKoiPresentation.DialogueDistance(1.75f,0.9f)-0.65f)<0.001f,"dialogue panel stays in front of a close partner");
         Check(FrameKoiPresentation.DialogueDistance(1.75f,0.3f)==FrameKoiPresentation.MinDialogueDistance,"dialogue panel keeps a readable minimum distance");

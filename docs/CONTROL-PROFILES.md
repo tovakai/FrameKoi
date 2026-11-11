@@ -24,8 +24,16 @@ crouch are retained. New profiles/presentation still need headset validation.
 | D-pad Up | Quick travel | Existing scene Up command | Previous choice |
 | D-pad Down | Reserved | Existing scene Down command | Next choice |
 | D-pad Left/Right | Left reserved / next period (hold 1 s) | Existing scene commands | Highlight previous/next category; A opens it |
-| View | Fullscreen HUD show/hide | Scene controls | Recenter panel |
+| View (tap) | Fullscreen HUD show/hide | Scene controls | Recenter panel |
+| View (hold 0.6 s) | Plugin settings window | Plugin settings window | Plugin settings window |
 | Menu | Original status menu | Scene controls | Recenter panel |
+
+Hold-capable buttons (those with a `<button>:hold` binding) act on release when
+tapped, so View's tap fires on release. Holding View opens/closes BepInEx
+ConfigurationManager; in KK its F1 hotkey is disabled and it is otherwise only
+reachable from the desktop Config screen.
+While it is open, bumper clicks drive the real mouse (IMGUI needs it), the left
+stick scrolls, and B closes it. Remap with e.g. `left_view:hold=None`.
 
 Grips cannot start GripMove. Bumpers cannot reach the old touchpad/tool-cycle
 handler. Scene Y retains that secondary behavior, including item cycling when

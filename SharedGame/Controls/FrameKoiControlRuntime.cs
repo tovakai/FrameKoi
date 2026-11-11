@@ -42,6 +42,7 @@ namespace KK_VR.Controls
         {
             _router = new FrameKoiContextRouter(this, FrameKoiBindings.Defaults());
             FrameKoiPresentation.CharacterAhead = NearestCharacterAhead;
+            _router.Clock = () => Time.unscaledTime;
             FrameKoiInputRuntime.Current = this;
             FrameKoiUiPolicy.Interactive = false;
         }
@@ -178,13 +179,14 @@ namespace KK_VR.Controls
             var modal = !baseScene && added.Length != 0 && (SceneOverlap || added != LoadedScene);
             var suspended = loading || SteamFocusLost();
             if (suspended) { _reconnecting[0] = true; _reconnecting[1] = true; }
-            var profile = FrameKoiContext.Resolve(modal, dialogue, _ui.SceneMenuVisible,
+            var settings = FrameKoiSettingsMenu.IsOpen;
+            var profile = FrameKoiContext.Resolve(modal, dialogue, _ui.SceneMenuVisible || settings,
                 type == KoikGameInterp.SceneType.ActionScene, type == KoikGameInterp.SceneType.OtherScene);
             // Reuse a scratch context; only a real change hands it to the router.
             var next = _scratchContext;
             next.Profile = _ownsPause ? FrameKoiProfile.DialogueMenu : profile;
             next.Blocking = modal || _ownsPause; next.Suspended = suspended; next.Owner = input;
-            next.Menu = _ownsPause ? "FrameKoiPause" : modal ? added : _ui.SceneMenuVisible ? "SceneControls" : "";
+            next.Menu = _ownsPause ? "FrameKoiPause" : modal ? added : settings ? "Settings" : _ui.SceneMenuVisible ? "SceneControls" : "";
             var contextChanged = !next.Same(_router.Context);
             if (contextChanged)
             {
@@ -211,6 +213,7 @@ namespace KK_VR.Controls
             var ready = !(KoikGameInterp.SceneInterpreter is TalkSceneInterp talk) || !talk.IsStart;
             _ui.Sync(next.Profile, modal || _ownsPause, dialogue, ready, input, suspended);
             FrameKoiUiPolicy.Interactive = _ui.Interactive && !_ownsPause && !suspended;
+            FrameKoiUiPolicy.MouseClicks = settings;
             FrameKoiInputRuntime.RoamingAllowed = next.Profile == FrameKoiProfile.Roaming && !next.Blocking && !suspended;
             if (modal && (contextChanged || Time.unscaledTime >= _rootRefreshAt))
             { _modalRoot = FrameKoiGameActions.ModalRoot(added); _rootRefreshAt = Time.unscaledTime + 0.2f; }
@@ -235,6 +238,7 @@ namespace KK_VR.Controls
                 else _router.Sample(hand, button, down);
                 if (previous != down) Sync(force: true); // synchronous UI/game callbacks
             }
+            _router.Tick();
             _axes[hand] = FrameKoiNativeInput.Analog(hand == 0 ? "left_stick" : "right_stick");
             if (reconnecting || _reconnecting[hand]) _axisBlocked[hand] = _axes[hand].sqrMagnitude > 0.04f;
             _reconnecting[hand] = false;
@@ -245,7 +249,16 @@ namespace KK_VR.Controls
             {
                 input?.SetFrameKoiLeftStick(_router.Context.Profile == FrameKoiProfile.Roaming ? axis : Vector2.zero);
                 if (_router.Context.Profile == FrameKoiProfile.Scene) input?.SetSceneMovement(axis);
-                if (_router.Context.Profile == FrameKoiProfile.DialogueMenu && (!_router.Context.Blocking || _modalRoot != null) && Time.unscaledTime >= _uiRepeatAt && axis.sqrMagnitude > 0.3f)
+                if (_router.Context.Menu == "Settings")
+                {
+                    // The settings window is an IMGUI scroll view; it only takes the mouse wheel.
+                    if (Mathf.Abs(axis.y) > 0.5f && Time.unscaledTime >= _uiRepeatAt)
+                    {
+                        VR.Input.Mouse.VerticalScroll(axis.y > 0f ? 1 : -1);
+                        _uiRepeatAt = Time.unscaledTime + 0.08f;
+                    }
+                }
+                else if (_router.Context.Profile == FrameKoiProfile.DialogueMenu && (!_router.Context.Blocking || _modalRoot != null) && Time.unscaledTime >= _uiRepeatAt && axis.sqrMagnitude > 0.3f)
                 {
                     FrameKoiGameActions.Navigate(_modalRoot, Mathf.Abs(axis.x) > Mathf.Abs(axis.y) ? (int)Mathf.Sign(axis.x) : 0,
                         Mathf.Abs(axis.y) >= Mathf.Abs(axis.x) ? (int)Mathf.Sign(axis.y) : 0);
@@ -336,11 +349,13 @@ namespace KK_VR.Controls
                     break;
                 case FrameKoiAction.RecenterUI: _ui.Recenter(); break;
                 case FrameKoiAction.Cancel:
-                    if (_ownsPause) TogglePause();
+                    if (FrameKoiSettingsMenu.IsOpen) FrameKoiSettingsMenu.Close();
+                    else if (_ownsPause) TogglePause();
                     else if (_ui.SceneMenuVisible) _ui.SceneMenuVisible = false;
                     else if (!FrameKoiGameActions.Cancel(_modalRoot) && context.Profile == FrameKoiProfile.Scene) _router.Reset();
                     break;
                 case FrameKoiAction.Pause: TogglePause(); break;
+                case FrameKoiAction.SettingsMenu: FrameKoiSettingsMenu.Toggle(); break;
                 case FrameKoiAction.Up:
                 case FrameKoiAction.Down:
                 case FrameKoiAction.Left:

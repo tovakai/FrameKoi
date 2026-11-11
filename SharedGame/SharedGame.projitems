@@ -19,6 +19,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiGamepadLocomotion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiControlRuntime.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiGameActions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiSettingsMenu.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\FrameKoiPresentation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\HideMaleHead.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\FirstPersonBodyVisibility.cs" />

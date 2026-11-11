@@ -192,7 +192,7 @@ namespace KK_VR.Controls
             FrameKoiUiPolicy.Interactive = _ui.Interactive && !_ownsPause && !suspended;
             FrameKoiInputRuntime.RoamingAllowed = next.Profile == FrameKoiProfile.Roaming && !next.Blocking && !suspended;
             if (modal && (contextChanged || Time.unscaledTime >= _rootRefreshAt))
-            { _modalRoot = FrameKoiGameActions.ModalRoot(); _rootRefreshAt = Time.unscaledTime + 0.2f; }
+            { _modalRoot = FrameKoiGameActions.ModalRoot(added); _rootRefreshAt = Time.unscaledTime + 0.2f; }
             else if (!modal) _modalRoot = null;
             FrameKoiUiPolicy.FocusRoot = _modalRoot;
         }

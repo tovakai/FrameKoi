@@ -110,14 +110,32 @@ namespace KK_VR.Controls
             button.onClick.Invoke();
             return true;
         }
-        internal static Transform ModalRoot()
+        internal static Transform ModalRoot(string addedScene)
         {
+            // The game loads each overlay menu (NightMenu, Load, Check, Config...)
+            // as an additive Unity scene named after its level. Select the UI from
+            // that scene. Sorting order alone is unreliable: entering the home menu
+            // creates the clock HUD and the menu canvas both at order 0, and picking
+            // the HUD rejected every click on the menu.
             var canvases = UnityEngine.Object.FindObjectsOfType<Canvas>()
                 .Where(c => c.isActiveAndEnabled && c.gameObject.activeInHierarchy &&
-                    !c.name.StartsWith("FrameKoi", StringComparison.Ordinal));
-            // Scene stack detection decides whether this is a modal. Canvas
-            // sorting selects only that foreground UI, not an arbitrary NPC.
-            return canvases.OrderByDescending(c => c.sortingOrder).FirstOrDefault()?.transform;
+                    !c.name.StartsWith("FrameKoi", StringComparison.Ordinal) &&
+                    c.gameObject.scene.name == addedScene)
+                .OrderByDescending(c => c.sortingOrder)
+                .FirstOrDefault();
+            if (canvases == null)
+            {
+                // No filter is safer than a wrong one: UI raycasts still prefer
+                // the topmost graphic, and nothing is clickable outside panels.
+                FrameKoiInputDiagnostics.Log("modal-root-none-" + addedScene,
+                    "modal " + addedScene + ": no canvas in that scene; UI focus filter disabled", 4);
+                return null;
+            }
+            // Use the scene's root object so every canvas of the menu is included.
+            var root = canvases.transform.root;
+            FrameKoiInputDiagnostics.Log("modal-root-" + addedScene,
+                "modal " + addedScene + ": UI focus root " + root.name + " (canvas " + canvases.name + ")", 4);
+            return root;
         }
     }
 }

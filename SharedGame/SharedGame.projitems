@@ -24,6 +24,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Features\HideMaleHead.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\FirstPersonBodyVisibility.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Features\FrameKoiAntiAliasing.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Features\FrameKoiPerfLog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Fixes\GameFixes.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Fixes\ObiControlFix.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GameStandingMode.cs" />

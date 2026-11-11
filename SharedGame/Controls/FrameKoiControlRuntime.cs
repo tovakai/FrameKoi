@@ -59,7 +59,7 @@ namespace KK_VR.Controls
         // Sync runs every frame (VR: 90+ Hz) on Unity 5.6's non-generational GC,
         // so scene/focus state is read through typed, allocation-free accessors.
 #if KK
-        private static bool SceneLoading
+        internal static bool SceneLoading
         {
             get { var scene = Manager.Scene.Instance; return scene != null && (scene.IsNowLoading || scene.IsNowLoadingFade); }
         }
@@ -91,7 +91,7 @@ namespace KK_VR.Controls
             }
             return (Func<T>)Delegate.CreateDelegate(typeof(Func<T>), getter);
         }
-        private static bool SceneLoading => IsNowLoading() || IsNowLoadingFade();
+        internal static bool SceneLoading => IsNowLoading() || IsNowLoadingFade();
         private static bool SceneOverlap => IsOverlap();
         private static string AddedScene => AddSceneName() ?? "";
         private static string LoadedScene => LoadSceneName();

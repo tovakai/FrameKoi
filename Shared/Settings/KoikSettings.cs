@@ -153,6 +153,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<bool> FrameKoiRightStickTurning { get; private set; }
         public static ConfigEntry<float> FrameKoiStickDeadzone { get; private set; }
         public static ConfigEntry<bool> FrameKoiAxisDiagnostics { get; private set; }
+        public static ConfigEntry<bool> FrameKoiPerfLog { get; private set; }
         public static ConfigEntry<bool> FrameKoiNativeInputEnabled { get; private set; }
         public static ConfigEntry<string> FrameKoiActionManifestPath { get; private set; }
         public static ConfigEntry<bool> FrameKoiExperimentalStickMove { get; private set; }
@@ -442,6 +443,9 @@ namespace KK_VR.Settings
                 new ConfigDescription("Ignore right stick movement near center; also controls turn speed response.",
                     new AcceptableValueRange<float>(0.05f, 0.5f)));
 
+            FrameKoiPerfLog = config.Bind(SectionGeneral, "FrameKoi performance log", true,
+                "Log frame-time summaries every 30 s and each hitch (>25 ms) with its GC/allocation/scene context to " +
+                "BepInEx/LogOutput.log. Cheap; disable once performance has been diagnosed.");
             FrameKoiAxisDiagnostics = config.Bind(SectionRoaming, "FrameKoi axis diagnostics", false,
                 "Log both controller thumbstick axes at most once per second for SteamVR binding troubleshooting. Disable after testing.");
 

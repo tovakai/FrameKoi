@@ -49,13 +49,18 @@ namespace KK_VR.Controls
         internal static void Toggle()
         {
             if (!Bind()) return;
+            KoikMenuHandler.ResetAllPointers();
             _setOpen(!_isOpen());
-            FrameKoiInputDiagnostics.Log("settings-menu", "plugin settings window " + (_isOpen() ? "opened" : "closed"), 6);
+            FrameKoiInputDiagnostics.Log("settings-menu", "plugin settings window " + (_isOpen() ? "opened" : "closed") +
+                ", cursor lock=" + Cursor.lockState + ", visible=" + Cursor.visible, 30);
         }
 
         internal static void Close()
         {
-            if (IsOpen) _setOpen(false);
+            if (!IsOpen) return;
+            KoikMenuHandler.ResetAllPointers();
+            _setOpen(false);
+            FrameKoiInputDiagnostics.Log("settings-menu", "plugin settings window closed", 30);
         }
     }
 }

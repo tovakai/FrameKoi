@@ -303,12 +303,12 @@ namespace KK_VR.Controls
     internal static class FrameKoiInputDiagnostics
     {
         private static readonly Dictionary<string, int> Counts = new Dictionary<string, int>();
-        private static int _remaining = 300;
+        private static int _remaining = 2000;
 
         internal static void Reset()
         {
             Counts.Clear();
-            _remaining = 300;
+            _remaining = 2000;
         }
 
         internal static void Log(string key, string message, int limit = 3)

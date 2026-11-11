@@ -55,8 +55,10 @@ namespace KK_VR.Controls
                 _panel.transform.SetParent(head, false);
                 const float distance = 1.25f;
                 var width = 2f * distance * Mathf.Tan(KoikSettings.FrameKoiHudAngle.Value * Mathf.Deg2Rad * 0.5f);
-                _panel.transform.localPosition = Vector3.forward * distance;
-                _panel.transform.localRotation = Quaternion.identity;
+                // Pitch the head-locked HUD down so it sits below the line of sight.
+                var pitch = Quaternion.Euler(-KoikSettings.FrameKoiHudVertical.Value, 0f, 0f);
+                _panel.transform.localPosition = pitch * Vector3.forward * distance;
+                _panel.transform.localRotation = pitch;
                 var height = width * Screen.height / Screen.width;
                 _panel.transform.localScale = new Vector3(width, height, 1f);
             }

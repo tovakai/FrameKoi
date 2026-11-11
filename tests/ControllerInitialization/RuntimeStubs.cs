@@ -192,6 +192,7 @@ namespace KK_VR.Settings
         public static ValueSetting<float> FrameKoiDialogueVertical=new ValueSetting<float>(-0.2f);
         public static ValueSetting<float> FrameKoiPanelAngle=new ValueSetting<float>(36f);
         public static ValueSetting<float> FrameKoiHudAngle=new ValueSetting<float>(90f);
+        public static ValueSetting<float> FrameKoiHudVertical=new ValueSetting<float>(-12f);
         public static ValueSetting<PlayerBodyMode> FrameKoiPlayerBody = new ValueSetting<PlayerBodyMode>(PlayerBodyMode.HideBody);
     }
     public static class GameSettings

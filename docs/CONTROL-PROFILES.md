@@ -71,7 +71,8 @@ side angle chooses the left. Placement is sampled on open, once again when the
 dialogue camera setup settles, and on explicit recenter. It does not follow
 head rotation every frame. On exit, the previous roaming HUD state returns.
 
-View toggles one headset-facing roaming display, 90 degrees wide at 1.25 m.
+View toggles one headset-facing roaming display, 70 degrees wide at 1.25 m,
+centered 12 degrees below eye level.
 It has no collider and never enables lasers or captures gameplay input.
 Hidden means its GameObject is inactive. It is not split into wrist panels.
 Scene controls may use a hand-anchored copy of the original scene interface.
@@ -94,7 +95,8 @@ All new options are in 0. General:
 | FrameKoi dialogue side angle | +25 degrees (right) |
 | FrameKoi dialogue vertical offset | -0.2 m |
 | FrameKoi menu panel angular height | 36 degrees at any distance (sharp text needs ~35+) |
-| FrameKoi fullscreen HUD width | 90 degrees |
+| FrameKoi fullscreen HUD width | 70 degrees (text aliases below ~65) |
+| FrameKoi HUD vertical angle | -12 degrees (below eye level) |
 | FrameKoi VR anti-aliasing | X4 MSAA (GameDefault, Off, X2, X4, X8) |
 | FrameKoi roaming/scene/menu binding overrides | Empty, use defaults |
 | FrameKoi scoped compatibility input | true |

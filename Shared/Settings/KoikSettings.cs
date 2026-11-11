@@ -134,6 +134,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<float> FrameKoiDialogueVertical { get; private set; }
         public static ConfigEntry<float> FrameKoiPanelAngle { get; private set; }
         public static ConfigEntry<float> FrameKoiHudAngle { get; private set; }
+        public static ConfigEntry<float> FrameKoiHudVertical { get; private set; }
         public static ConfigEntry<FrameKoiMsaaMode> FrameKoiMsaa { get; private set; }
         public static ConfigEntry<string> FrameKoiRoamingBindings { get; private set; }
         public static ConfigEntry<string> FrameKoiSceneBindings { get; private set; }
@@ -388,8 +389,11 @@ namespace KK_VR.Settings
                 new ConfigDescription("Vertical size in degrees of the dialogue/menu panel, at any distance. The game UI texture has " +
                     "about 900 rows; below roughly 35 degrees it is squeezed into fewer headset pixels and text becomes jagged.",
                     new AcceptableValueRange<float>(15f, 60f)));
-            FrameKoiHudAngle = config.Bind(SectionGeneral, "FrameKoi fullscreen HUD width", 90f,
-                new ConfigDescription("Angular width in degrees of the display-only roaming HUD.", new AcceptableValueRange<float>(60f, 110f)));
+            FrameKoiHudVertical = config.Bind(SectionGeneral, "FrameKoi HUD vertical angle", -12f,
+                new ConfigDescription("Degrees above (+) or below (-) eye level for the roaming HUD center. Applies when the HUD is next shown.",
+                    new AcceptableValueRange<float>(-40f, 20f)));
+            FrameKoiHudAngle = config.Bind(SectionGeneral, "FrameKoi fullscreen HUD width", 70f,
+                new ConfigDescription("Angular width in degrees of the display-only roaming HUD. Below ~65 degrees its text starts to alias.", new AcceptableValueRange<float>(50f, 110f)));
             FrameKoiMsaa = config.Bind(SectionGeneral, "FrameKoi VR anti-aliasing", FrameKoiMsaaMode.X4,
                 "Multisample anti-aliasing for the headset view; smooths jagged edges using GPU time only. " +
                 "GameDefault keeps the game's quality-level value. Applies live; if a change is not visible, restart the game. " +

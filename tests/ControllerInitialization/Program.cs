@@ -184,8 +184,8 @@ static class Program
         FrameKoiInputDiagnostics.Reset();VRLog.Messages.Clear();
         for(int i=0;i<1000;i++)FrameKoiInputDiagnostics.Log("same","repeat");
         Check(VRLog.Messages.Count==3,"per-event diagnostic limit");
-        for(int i=0;i<1000;i++)FrameKoiInputDiagnostics.Log("event-"+i,"event");
-        Check(VRLog.Messages.Count==301,"session diagnostic limit");
+        for(int i=0;i<3000;i++)FrameKoiInputDiagnostics.Log("event-"+i,"event");
+        Check(VRLog.Messages.Count==2001,"session diagnostic limit");
         Console.WriteLine($"PASS: {_assertions} assertions, native bridge/semantic transport/game movement simulations. No hardware validation.");
     }
 }

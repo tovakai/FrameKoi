@@ -121,6 +121,19 @@ namespace KK_VR.Controls
             Pointers.Add(this);
         }
 
+        /// <summary>
+        /// Clears click state on every pointer and sends a mouse-up, so a button
+        /// left "down" in Windows by an interrupted IMGUI click cannot swallow
+        /// the next one. A stray mouse-up is harmless.
+        /// </summary>
+        internal static void ResetAllPointers()
+        {
+            foreach (var pointer in Pointers) pointer.ReleasePointerButtons();
+            _mouseOwner = null;
+            _mouseReleaseFrame = -1;
+            VR.Input.Mouse.LeftButtonUp();
+        }
+
         internal static KoikMenuHandler FindTargetedPointer(KoikMenuHandler preferred)
         {
             // A is on the right controller, but the left hand can be aiming at
@@ -189,12 +202,25 @@ namespace KK_VR.Controls
                 if (FrameKoiNativeInput.Ready)
                 {
                     if (_lastPointerHit == null || (_mouseOwner != null && _mouseOwner != this &&
-                        _mouseOwner._pressedButtons != 0)) return;
+                        _mouseOwner._pressedButtons != 0))
+                    {
+                        if (FrameKoiUiPolicy.MouseClicks)
+                            FrameKoiInputDiagnostics.Log("mouse-click-refused", "settings click refused: " +
+                                (_lastPointerHit == null ? "pointer has no panel hit" : "other hand holds the mouse"), 20);
+                        return;
+                    }
                     _mouseOwner = this;
                     _mouseDownPosition = null;
                     UpdateMouse(_lastPointerHit.Value);
                 }
-                if (_triggerHolds++ != 0) return;
+                if (_triggerHolds++ != 0)
+                {
+                    if (FrameKoiUiPolicy.MouseClicks)
+                        FrameKoiInputDiagnostics.Log("mouse-click-held", "settings click ignored: holds=" + _triggerHolds, 20);
+                    return;
+                }
+                if (FrameKoiUiPolicy.MouseClicks)
+                    FrameKoiInputDiagnostics.Log("mouse-click", "settings mouse click at " + Input.mousePosition, 40);
                 // IMGUI windows (plugin settings) only respond to real mouse input,
                 // and a direct uGUI click would land on game UI underneath them.
                 if (!FrameKoiNativeInput.Ready || FrameKoiUiPolicy.MouseClicks || !BeginDirectUI())

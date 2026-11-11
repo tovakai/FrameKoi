@@ -41,6 +41,7 @@ namespace KK_VR.Controls
         private void OnEnable()
         {
             _router = new FrameKoiContextRouter(this, FrameKoiBindings.Defaults());
+            FrameKoiPresentation.CharacterAhead = NearestCharacterAhead;
             FrameKoiInputRuntime.Current = this;
             FrameKoiUiPolicy.Interactive = false;
         }
@@ -115,6 +116,26 @@ namespace KK_VR.Controls
             }
             if (_focusQuery == null) return false;
             return _focusQueryInverted ? !_focusQuery() : _focusQuery();
+        }
+        // Only runs when the dialogue panel is placed, not per frame.
+        private static float? NearestCharacterAhead(Transform head, float range)
+        {
+            var forward = head.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f) return null;
+            forward.Normalize();
+            float? nearest = null;
+            foreach (var chara in FindObjectsOfType<ChaControl>())
+            {
+                if (chara == null || !chara.isActiveAndEnabled || chara.objHeadBone == null) continue;
+                var offset = chara.objHeadBone.transform.position - head.position;
+                offset.y = 0f;
+                var ahead = Vector3.Dot(offset, forward);
+                // Excludes the hidden protagonist at the camera and people off to the side.
+                if (ahead < 0.2f || ahead > range || Vector3.Angle(forward, offset) > 50f) continue;
+                if (nearest == null || ahead < nearest.Value) nearest = ahead;
+            }
+            return nearest;
         }
         private int _syncFrame = -1;
         // ActionScene.NextCycle ends the period at once; the game itself never

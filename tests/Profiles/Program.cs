@@ -127,5 +127,9 @@ static class Program
         ui.Sync(FrameKoiProfile.DialogueMenu,true,false,true,owner,true);
         Check(ui.Mode==FrameKoiPanelMode.Hidden&&!panel.gameObject.activeSelf,"loading/focus suspension hides presentation");
         ui.Dispose();
+        Check(FrameKoiPresentation.DialogueDistance(1.75f,null)==1.75f,"no character keeps configured dialogue distance");
+        Check(Math.Abs(FrameKoiPresentation.DialogueDistance(1.75f,0.9f)-0.65f)<0.001f,"dialogue panel stays in front of a close partner");
+        Check(FrameKoiPresentation.DialogueDistance(1.75f,0.3f)==FrameKoiPresentation.MinDialogueDistance,"dialogue panel keeps a readable minimum distance");
+        Check(FrameKoiPresentation.DialogueDistance(1.75f,3f)==1.75f,"distant characters never push the panel farther");
     }
 }

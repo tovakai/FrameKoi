@@ -73,16 +73,35 @@ namespace KK_VR.Controls
                 // Sample headset pose once. Subsequent head/virtual turns do not
                 // move the dialogue panel; Menu/recenter can place it again.
                 _panel.transform.SetParent(null, true);
+                var configured = KoikSettings.FrameKoiDialogueDistance.Value;
+                var distance = DialogueDistance(configured, CharacterAhead?.Invoke(head, configured + 0.5f));
+                // Keep the configured angular size when pulled closer.
+                var scale = configured > 0f ? distance / configured : 1f;
                 var yaw = Quaternion.Euler(0f, head.eulerAngles.y + KoikSettings.FrameKoiDialogueSideAngle.Value, 0f);
-                var position = head.position + yaw * Vector3.forward * KoikSettings.FrameKoiDialogueDistance.Value +
-                    Vector3.up * KoikSettings.FrameKoiDialogueVertical.Value;
+                var position = head.position + yaw * Vector3.forward * distance +
+                    Vector3.up * KoikSettings.FrameKoiDialogueVertical.Value * scale;
                 _panel.transform.SetPositionAndRotation(position, Quaternion.LookRotation(position - head.position, Vector3.up));
-                var height = KoikSettings.FrameKoiDialogueHeight.Value;
+                var height = KoikSettings.FrameKoiDialogueHeight.Value * scale;
                 _panel.transform.localScale = new Vector3(height * Screen.width / Screen.height, height, 1f);
             }
             // GUIQuad.Start can update aspect, but preserves the requested height.
             _panel.UpdateAspect();
         }
+        // Horizontal distance from the head to the nearest character in front,
+        // within the given range; null when none. Supplied by the game runtime.
+        internal static System.Func<Transform, float, float?> CharacterAhead;
+        internal const float CharacterClearance = 0.25f;
+        internal const float MinDialogueDistance = 0.45f;
+
+        // Talk cameras sit well under a metre from the partner, so a fixed
+        // distance put the panel behind her. Stay just in front of whoever is
+        // ahead, never farther than configured.
+        internal static float DialogueDistance(float configured, float? characterAhead)
+        {
+            if (!characterAhead.HasValue) return configured;
+            return System.Math.Min(configured, System.Math.Max(MinDialogueDistance, characterAhead.Value - CharacterClearance));
+        }
+
         internal void Dispose()
         {
             FrameKoiUiPolicy.Interactive = false;

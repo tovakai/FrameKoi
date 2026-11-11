@@ -76,6 +76,14 @@ namespace KK_VR.Settings
             Auto
         }
 
+        public enum FrameKoiMsaaMode
+        {
+            GameDefault,
+            Off,
+            X2,
+            X4,
+            X8
+        }
         public enum FrameKoiTurningMode
         {
             Smooth,
@@ -126,6 +134,7 @@ namespace KK_VR.Settings
         public static ConfigEntry<float> FrameKoiDialogueVertical { get; private set; }
         public static ConfigEntry<float> FrameKoiDialogueHeight { get; private set; }
         public static ConfigEntry<float> FrameKoiHudAngle { get; private set; }
+        public static ConfigEntry<FrameKoiMsaaMode> FrameKoiMsaa { get; private set; }
         public static ConfigEntry<string> FrameKoiRoamingBindings { get; private set; }
         public static ConfigEntry<string> FrameKoiSceneBindings { get; private set; }
         public static ConfigEntry<string> FrameKoiMenuBindings { get; private set; }
@@ -379,6 +388,10 @@ namespace KK_VR.Settings
                 new ConfigDescription("Panel height in meters. Width follows the original UI aspect ratio.", new AcceptableValueRange<float>(0.3f, 1.2f)));
             FrameKoiHudAngle = config.Bind(SectionGeneral, "FrameKoi fullscreen HUD width", 90f,
                 new ConfigDescription("Angular width in degrees of the display-only roaming HUD.", new AcceptableValueRange<float>(60f, 110f)));
+            FrameKoiMsaa = config.Bind(SectionGeneral, "FrameKoi VR anti-aliasing", FrameKoiMsaaMode.X4,
+                "Multisample anti-aliasing for the headset view; smooths jagged edges using GPU time only. " +
+                "GameDefault keeps the game's quality-level value. Applies live; if a change is not visible, restart the game. " +
+                "Has no effect if the game camera uses deferred rendering (see the FrameKoi anti-aliasing log line).");
             FrameKoiRoamingBindings = config.Bind(SectionGeneral, "FrameKoi roaming binding overrides", "",
                 "Optional physical=SemanticAction pairs separated by semicolons, e.g. y=Crouch;dpad_left=None. Empty uses documented profile defaults.");
             FrameKoiSceneBindings = config.Bind(SectionGeneral, "FrameKoi scene binding overrides", "", "Same override format for special scenes. Bumpers default to SelectUI.");

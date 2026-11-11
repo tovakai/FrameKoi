@@ -84,6 +84,7 @@ All new options are in 0. General:
 | FrameKoi dialogue vertical offset | -0.2 m |
 | FrameKoi dialogue panel height | 0.65 m |
 | FrameKoi fullscreen HUD width | 90 degrees |
+| FrameKoi VR anti-aliasing | X4 MSAA (GameDefault, Off, X2, X4, X8) |
 | FrameKoi roaming/scene/menu binding overrides | Empty, use defaults |
 | FrameKoi scoped compatibility input | true |
 | FrameKoi legacy UI mouse clicks | false (explicit IMGUI opt-in) |

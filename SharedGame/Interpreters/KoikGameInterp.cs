@@ -58,6 +58,7 @@ namespace KK_VR.Interpreters
             VR.Camera.gameObject.AddComponent<EffectorVFX>();
             VR.Camera.gameObject.AddComponent<SmoothMover>();
             VR.Camera.gameObject.AddComponent<FirstPersonBodyVisibility>();
+            VR.Camera.gameObject.AddComponent<FrameKoiAntiAliasing>();
             VR.Camera.gameObject.AddComponent<FrameKoiControlRuntime>();
             SceneManager.sceneLoaded += OnSceneLoaded;
 #if KK

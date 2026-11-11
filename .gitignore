@@ -45,3 +45,6 @@ PatcherLoader/Libs
 
 # rider
 .idea/
+# Local test/build outputs
+tests/**/bin/
+tests/**/obj/

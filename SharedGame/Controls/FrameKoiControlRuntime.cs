@@ -25,7 +25,9 @@ namespace KK_VR.Controls
         private readonly Vector2[] _axes = new Vector2[2];
         private readonly bool[] _axisBlocked = new bool[2];
         private readonly Dictionary<SceneInput, int[,]> _leases = new Dictionary<SceneInput, int[,]>();
-        private string _bindingText;
+        private string _roamingBindings, _sceneBindings, _menuBindings;
+        private bool _bindingsLoaded;
+        private FrameKoiContext _scratchContext = new FrameKoiContext();
         private bool _ownsPause;
         private float _previousTimeScale;
         private Transform _modalRoot;
@@ -45,34 +47,97 @@ namespace KK_VR.Controls
         private void OnDisable()
         {
             _router?.Reset();
+            _nextPeriodAt = -1f;
             if (_ownsPause) Time.timeScale = _previousTimeScale;
             _ownsPause = false;
             _ui.Dispose();
             if (FrameKoiInputRuntime.Current == this) FrameKoiInputRuntime.Current = null;
             FrameKoiInputRuntime.RoamingAllowed = false;
         }
-        private static object ReadScene(string property)
-        {
+        // Sync runs every frame (VR: 90+ Hz) on Unity 5.6's non-generational GC,
+        // so scene/focus state is read through typed, allocation-free accessors.
 #if KK
-            var target = Manager.Scene.Instance;
-            return target == null ? null : target.GetType().GetProperty(property)?.GetValue(target, null);
-#else
-            return typeof(Manager.Scene).GetProperty(property, BindingFlags.Public | BindingFlags.Static)?.GetValue(null, null);
-#endif
+        private static bool SceneLoading
+        {
+            get { var scene = Manager.Scene.Instance; return scene != null && (scene.IsNowLoading || scene.IsNowLoadingFade); }
         }
-        private static bool SceneFlag(string property) => ReadScene(property) is bool value && value;
+        private static bool SceneOverlap
+        {
+            get { var scene = Manager.Scene.Instance; return scene != null && scene.IsOverlap; }
+        }
+        private static string AddedScene
+        {
+            get { var scene = Manager.Scene.Instance; return scene == null ? "" : scene.AddSceneName ?? ""; }
+        }
+        private static string LoadedScene
+        {
+            get { var scene = Manager.Scene.Instance; return scene == null ? null : scene.LoadSceneName; }
+        }
+#else
+        private static readonly Func<bool> IsNowLoading = StaticSceneGetter<bool>("IsNowLoading");
+        private static readonly Func<bool> IsNowLoadingFade = StaticSceneGetter<bool>("IsNowLoadingFade");
+        private static readonly Func<bool> IsOverlap = StaticSceneGetter<bool>("IsOverlap");
+        private static readonly Func<string> AddSceneName = StaticSceneGetter<string>("AddSceneName");
+        private static readonly Func<string> LoadSceneName = StaticSceneGetter<string>("LoadSceneName");
+        private static Func<T> StaticSceneGetter<T>(string property)
+        {
+            var getter = typeof(Manager.Scene).GetProperty(property, BindingFlags.Public | BindingFlags.Static)?.GetGetMethod();
+            if (getter == null || getter.ReturnType != typeof(T))
+            {
+                VRLog.Warn("FrameKoi: Manager.Scene." + property + " unavailable; treating it as default.");
+                return () => default(T);
+            }
+            return (Func<T>)Delegate.CreateDelegate(typeof(Func<T>), getter);
+        }
+        private static bool SceneLoading => IsNowLoading() || IsNowLoadingFade();
+        private static bool SceneOverlap => IsOverlap();
+        private static string AddedScene => AddSceneName() ?? "";
+        private static string LoadedScene => LoadSceneName();
+#endif
+        private static object _focusSystem;
+        private static Func<bool> _focusQuery;
+        private static bool _focusQueryInverted;
         private static bool SteamFocusLost()
         {
             var system = OpenVR.System;
             if (system == null) return true;
-            var method = system.GetType().GetMethod("IsInputAvailable");
-            if (method != null) return !(bool)method.Invoke(system, null);
-            method = system.GetType().GetMethod("IsInputFocusCapturedByAnotherProcess");
-            return method != null && (bool)method.Invoke(system, null);
+            if (!ReferenceEquals(system, _focusSystem))
+            {
+                // Resolve once per OpenVR system instance; the KK and KKS
+                // wrappers expose different methods.
+                _focusSystem = system;
+                _focusQuery = null;
+                var method = system.GetType().GetMethod("IsInputAvailable", Type.EmptyTypes);
+                _focusQueryInverted = method != null;
+                if (method == null) method = system.GetType().GetMethod("IsInputFocusCapturedByAnotherProcess", Type.EmptyTypes);
+                if (method != null && method.ReturnType == typeof(bool))
+                    _focusQuery = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), system, method);
+            }
+            if (_focusQuery == null) return false;
+            return _focusQueryInverted ? !_focusQuery() : _focusQuery();
         }
-        private void Update() { if (FrameKoiNativeInput.Ready) Sync(); }
-        private void Sync()
+        private int _syncFrame = -1;
+        // ActionScene.NextCycle ends the period at once; the game itself never
+        // exposes it without a "go home?" confirmation. Require a deliberate hold.
+        private const float NextPeriodHoldSeconds = 1f;
+        private float _nextPeriodAt = -1f;
+        private void Update()
         {
+            if (!FrameKoiNativeInput.Ready) return;
+            Sync();
+            if (_nextPeriodAt >= 0f && Time.unscaledTime >= _nextPeriodAt)
+            {
+                _nextPeriodAt = -1f;
+                if (_router.Context != null && _router.Context.Profile == FrameKoiProfile.Roaming && !_router.Context.Blocking)
+                    FrameKoiGameActions.RoamingCommand("NextCycle");
+            }
+        }
+        // Both hands and Update share one context evaluation per frame; a
+        // button transition forces a re-sync for synchronous scene/UI changes.
+        private void Sync(bool force = false)
+        {
+            if (!force && _syncFrame == Time.frameCount) return;
+            _syncFrame = Time.frameCount;
             var input = KoikGameInterp.SceneInput;
             if (_router.Context != null && !ReferenceEquals(_router.Context.Owner, input))
             {
@@ -80,8 +145,8 @@ namespace KK_VR.Controls
                 if (_ownsPause) { Time.timeScale = _previousTimeScale; _ownsPause = false; }
             }
             var type = KoikGameInterp.CurrentScene;
-            var loading = SceneFlag("IsNowLoading") || SceneFlag("IsNowLoadingFade");
-            var added = ReadScene("AddSceneName") as string ?? "";
+            var loading = SceneLoading;
+            var added = AddedScene;
             var dialogue = type == KoikGameInterp.SceneType.TalkScene ||
                 added.IndexOf("Talk", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("ADV", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -89,32 +154,37 @@ namespace KK_VR.Controls
                 added.IndexOf("ADV", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("HScene", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 added.IndexOf("Action", StringComparison.OrdinalIgnoreCase) >= 0;
-            var modal = !baseScene && added.Length != 0 && (SceneFlag("IsOverlap") ||
-                added != (ReadScene("LoadSceneName") as string));
+            var modal = !baseScene && added.Length != 0 && (SceneOverlap || added != LoadedScene);
             var suspended = loading || SteamFocusLost();
             if (suspended) { _reconnecting[0] = true; _reconnecting[1] = true; }
             var profile = FrameKoiContext.Resolve(modal, dialogue, _ui.SceneMenuVisible,
                 type == KoikGameInterp.SceneType.ActionScene, type == KoikGameInterp.SceneType.OtherScene);
-            var next = new FrameKoiContext { Profile = profile, Blocking = modal || _ownsPause, Suspended = suspended,
-                Owner = input, Menu = _ownsPause ? "FrameKoiPause" : modal ? added : _ui.SceneMenuVisible ? "SceneControls" : "" };
-            if (_ownsPause) next.Profile = FrameKoiProfile.DialogueMenu;
+            // Reuse a scratch context; only a real change hands it to the router.
+            var next = _scratchContext;
+            next.Profile = _ownsPause ? FrameKoiProfile.DialogueMenu : profile;
+            next.Blocking = modal || _ownsPause; next.Suspended = suspended; next.Owner = input;
+            next.Menu = _ownsPause ? "FrameKoiPause" : modal ? added : _ui.SceneMenuVisible ? "SceneControls" : "";
             var contextChanged = !next.Same(_router.Context);
             if (contextChanged)
             {
+                _scratchContext = new FrameKoiContext();
                 FrameKoiInputDiagnostics.Log("context-" + next.Profile + "-" + next.Menu,
                     $"context={next.Profile}, modal={next.Blocking}, suspended={suspended}, menu={next.Menu}", 12);
                 _router.Change(next);
                 _reconnecting[0] = true; _reconnecting[1] = true;
             }
-            var bindingText = KoikSettings.FrameKoiRoamingBindings.Value + "|" + KoikSettings.FrameKoiSceneBindings.Value + "|" + KoikSettings.FrameKoiMenuBindings.Value;
-            if (bindingText != _bindingText)
+            var roamingBindings = KoikSettings.FrameKoiRoamingBindings.Value;
+            var sceneBindings = KoikSettings.FrameKoiSceneBindings.Value;
+            var menuBindings = KoikSettings.FrameKoiMenuBindings.Value;
+            if (!_bindingsLoaded || roamingBindings != _roamingBindings || sceneBindings != _sceneBindings || menuBindings != _menuBindings)
             {
-                if (_bindingText != null) _router.Reset();
-                _bindingText = bindingText;
+                if (_bindingsLoaded) _router.Reset();
+                _bindingsLoaded = true;
+                _roamingBindings = roamingBindings; _sceneBindings = sceneBindings; _menuBindings = menuBindings;
                 var bindings = FrameKoiBindings.Defaults();
-                bindings.Override(FrameKoiProfile.Roaming, KoikSettings.FrameKoiRoamingBindings.Value);
-                bindings.Override(FrameKoiProfile.Scene, KoikSettings.FrameKoiSceneBindings.Value);
-                bindings.Override(FrameKoiProfile.DialogueMenu, KoikSettings.FrameKoiMenuBindings.Value);
+                bindings.Override(FrameKoiProfile.Roaming, roamingBindings);
+                bindings.Override(FrameKoiProfile.Scene, sceneBindings);
+                bindings.Override(FrameKoiProfile.DialogueMenu, menuBindings);
                 _router.Bindings = bindings;
             }
             var ready = !(KoikGameInterp.SceneInterpreter is TalkSceneInterp talk) || !talk.IsStart;
@@ -142,7 +212,7 @@ namespace KK_VR.Controls
                 _digitalPrevious[button] = down;
                 if (_reconnecting[hand]) _router.Seed(hand, button, down);
                 else _router.Sample(hand, button, down);
-                if (previous != down) Sync(); // synchronous UI/game callbacks
+                if (previous != down) Sync(force: true); // synchronous UI/game callbacks
             }
             _axes[hand] = FrameKoiNativeInput.Analog(hand == 0 ? "left_stick" : "right_stick");
             if (reconnecting || _reconnecting[hand]) _axisBlocked[hand] = _axes[hand].sqrMagnitude > 0.04f;
@@ -230,7 +300,10 @@ namespace KK_VR.Controls
                     break;
                 case FrameKoiAction.Sprint: input?.FrameKoiSprintClick(); break;
                 case FrameKoiAction.QuickTravel: FrameKoiGameActions.RoamingCommand("OpenMapMoveAllMenu"); break;
-                case FrameKoiAction.NextPeriod: FrameKoiGameActions.RoamingCommand("NextCycle"); break;
+                case FrameKoiAction.NextPeriod:
+                    // Fires from Update after the hold; release or a context change cancels it.
+                    _nextPeriodAt = Time.unscaledTime + NextPeriodHoldSeconds;
+                    return () => _nextPeriodAt = -1f;
                 case FrameKoiAction.ToggleHUD: _ui.HudVisible = !_ui.HudVisible; _ui.Recenter(); break;
                 case FrameKoiAction.SceneMenu:
                     if (context.Profile == FrameKoiProfile.Roaming) FrameKoiGameActions.RoamingCommand("OpenStatus");

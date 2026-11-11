@@ -32,23 +32,15 @@ namespace KK_VR.Controls
         {
             var scene = ActionSceneInterp.actionScene;
             if (scene == null || scene.Player == null) return null;
-            var target = scene.Player.actionTarget;
-            if (target != null)
+            // Deliver the game's own action input (right mouse) rather than starting
+            // ActionScene._SceneEvent directly. The game's handler applies guards the
+            // coroutine itself does not: time period, ADV/overlay/regulation state,
+            // Player.isActionNow, the NPC's own isAction, and gate/action-point
+            // precedence. Bypassing them can force-start an event the game refuses.
+            var input = KoikGameInterp.SceneInput;
+            if (input != null && KoikSettings.FrameKoiCompatibilityInput.Value &&
+                (scene.Player.isGateHit || scene.Player.actionTarget != null || scene.Player.isActionPointHit))
             {
-                var method = scene.GetType().GetMethods(Flags).FirstOrDefault(m => m.Name == "_SceneEvent" &&
-                    m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType.IsInstanceOfType(target));
-                if (method != null)
-                {
-                    var routine = method.Invoke(scene, new object[] { target }) as IEnumerator;
-                    if (routine != null) { scene.StartCoroutine(routine); return null; }
-                }
-            }
-            // Old game versions expose no public gate/NPC activation API.
-            // Scope compatibility to an actual game-validated target.
-            if (KoikSettings.FrameKoiCompatibilityInput.Value &&
-                (scene.Player.isGateHit || target != null || scene.Player.isActionPointHit))
-            {
-                var input = KoikGameInterp.SceneInput;
                 input.OnDirectionDown(0, VRGIN.Controls.Controller.TrackpadDirection.Up);
                 return () => input.OnDirectionUp(0, VRGIN.Controls.Controller.TrackpadDirection.Up);
             }

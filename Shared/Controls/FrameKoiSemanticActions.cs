@@ -104,7 +104,15 @@ namespace KK_VR.Controls
         internal FrameKoiBindings Bindings;
         internal FrameKoiContext Context { get; private set; }
         internal FrameKoiContextRouter(IFrameKoiActionSink sink, FrameKoiBindings bindings) { _sink = sink; Bindings = bindings; }
-        private static string Key(int hand, string button) => hand + ":" + button;
+        // Every button is sampled every frame; build each "hand:button" key once.
+        private readonly Dictionary<string, string>[] _keys = { new Dictionary<string, string>(), new Dictionary<string, string>() };
+        private string Key(int hand, string button)
+        {
+            string key;
+            var keys = _keys[hand];
+            if (!keys.TryGetValue(button, out key)) keys[button] = key = hand + ":" + button;
+            return key;
+        }
 
         internal void Change(FrameKoiContext next)
         {

@@ -23,7 +23,7 @@ crouch are retained. New profiles/presentation still need headset validation.
 | Right stick click | Upright | Upright / recenter open UI | Upright / recenter panel |
 | D-pad Up | Quick travel | Existing scene Up command | Previous choice |
 | D-pad Down | Reserved | Existing scene Down command | Next choice |
-| D-pad Left/Right | Left reserved / next period | Existing scene commands | Previous/next category |
+| D-pad Left/Right | Left reserved / next period (hold 1 s) | Existing scene commands | Highlight previous/next category; A opens it |
 | View | Fullscreen HUD show/hide | Scene controls | Recenter panel |
 | Menu | Original status menu | Scene controls | Recenter panel |
 
@@ -100,9 +100,14 @@ settings. The SteamVR physical binding JSON does not need to be redesigned.
 - Quick travel/status/next period call the game's OpenMapMoveAllMenu,
   OpenStatus and NextCycle methods. Their original shortcut/event guards remain.
   An unavailable version-specific method logs a bounded warning and does nothing.
-- Action-point interaction calls the existing scene-event coroutine where
-  exposed. Older gate/NPC activation still uses the previous target-validated
-  secondary-click path, only with scoped compatibility enabled.
+- A in roaming delivers the game's own action input (right mouse) when a gate,
+  character or action point is targeted, only with scoped compatibility enabled.
+  It does not start ActionScene._SceneEvent directly: the game's input handler
+  applies time-period, ADV/overlay, regulation, busy-NPC and gate/action-point
+  precedence checks that the coroutine itself skips.
+- Next period must be held for 1 s. NextCycle ends the period immediately and
+  the game never exposes it without a "go home?" confirmation; release or a
+  context change cancels the hold.
 - Text advances through ADV RequestNextLine. Existing scroll-to-advance remains
   a compatibility fallback on versions without that method.
 - B backs out through the original conversation category/end controls where
@@ -120,7 +125,7 @@ settings. The SteamVR physical binding JSON does not need to be redesigned.
   Their scene-movement hook defaults to neutral, retaining existing scene
   commands instead of translating the VR origin or characters directly.
 - The display-only HUD preserves all original information. Status is on Menu,
-  travel on D-pad Up, next period on D-pad Right and pause/configuration on X.
+  travel on D-pad Up, next period on a 1 s D-pad Right hold and pause/configuration on X.
   Save/load, phone, help, individual minimap controls and mod-added HUD functions
   have no dedicated semantic shortcut yet. Use the game's desktop UI or existing
   relevant game menu; they are not exposed as laser controls on the roaming HUD.

@@ -104,17 +104,37 @@ namespace KK_VR.Interpreters
             if (_interpreter.IsStart) return true;
             var adv = advScene != null && IsADV;
             if (!adv && talkScene == null) return false;
-            var buttons = !adv && x != 0 ? GetMainButtons() : GetRelevantButtons(adv ? State.None : GetState(), adv);
+            var lateral = !adv && x != 0;
+            Button origin = null;
+            if (lateral)
+            {
+                // Lateral input only moves the highlight along the main row and A
+                // confirms. Clicking while browsing is unsafe: Listen commits a
+                // conversation turn immediately, and Talk/Event are toggles.
+                var state = GetState();
+#if KKS
+                // Leaving these states replies to / randomizes a topic.
+                if (state == State.Listen || state == State.Topic) return true;
+#endif
+                if (state != State.None)
+                {
+                    // Continue from the category whose contents were open.
+                    var main = GetMainButtons();
+                    if ((int)state >= 0 && (int)state < main.Length) origin = main[(int)state];
+                    LeaveState(false);
+                }
+            }
+            var buttons = lateral ? GetMainButtons() : GetRelevantButtons(adv ? State.None : GetState(), adv);
             if (buttons == null) return false;
             buttons = buttons.Where(b => b != null && b.IsActive() && b.IsInteractable()).ToArray();
             if (buttons.Length == 0) return false;
             var focused = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
-            var selected = buttons.FirstOrDefault(b => b.gameObject == focused) ?? GetSelectedButton(buttons, adv);
+            var selected = (origin != null && Array.IndexOf(buttons, origin) >= 0 ? origin : null) ??
+                buttons.FirstOrDefault(b => b.gameObject == focused) ?? GetSelectedButton(buttons, adv);
             var index = selected == null ? 0 : (Array.IndexOf(buttons, selected) + (x != 0 ? x : -y) + buttons.Length) % buttons.Length;
             foreach (var button in buttons) button.name = button.name.TrimEnd('+');
             MarkButton(buttons[index], adv);
             buttons[index].Select();
-            if (!adv && x != 0) buttons[index].onClick.Invoke();
             return true;
         }
         internal override void OnDirectionUp(int index, TrackpadDirection direction)

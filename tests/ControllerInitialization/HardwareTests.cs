@@ -3,6 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using KK_VR.Controls;
 using KK_VR.Features;
+using KK_VR.Holders;
 using KK_VR.Interpreters;
 using KK_VR.Settings;
 using UnityEngine;
@@ -109,8 +110,10 @@ static class HardwareTests
         mover.Update();
         check(player.RawPosition.x>0 && player.RawPosition.z>0 && player.agent.Moves>0,"stick reaches original NavMeshAgent path");
         var accepted=player.RawPosition;
+        var originBefore=VR.Camera.Origin.position;HandHolder.Shifted=Vector3.zero;
         FrameKoiGamepadLocomotion.FollowPlayer();
         check(Near(VR.Camera.Origin.position,accepted),"headset follows accepted player displacement");
+        check(Near(HandHolder.Shifted,VR.Camera.Origin.position-originBefore),"hands carried with the same locomotion displacement");
         var roomScale=new Vector3(0.2f,1.4f,0.1f);
         VR.Camera.Head.localPosition=roomScale;
         check(Near(VR.Camera.Head.position-VR.Camera.Origin.position,roomScale),"room-scale offset preserved");

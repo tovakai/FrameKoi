@@ -154,6 +154,8 @@ namespace KK_VR.Holders
         public static List<HandHolder> GetHands = new List<HandHolder>();
         public static HandHolder GetHand(int index) => GetHands[index];
         public Handler Handler;
+        public static Vector3 Shifted;
+        internal static void ShiftWithOrigin(Vector3 delta) { Shifted += delta; }
     }
     public class Handler { public bool IsBusy; }
 }

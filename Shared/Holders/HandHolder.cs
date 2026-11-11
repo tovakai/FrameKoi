@@ -52,6 +52,25 @@ namespace KK_VR.Holders
             }
         }
         internal static List<HandHolder> GetHands => _instances;
+
+        /// <summary>
+        /// Stick locomotion moves the VR origin every rendered frame, but hands
+        /// (anchored under VR.Manager) follow their controllers only through
+        /// rigidbody MovePosition at the physics rate, so they trailed and
+        /// snapped forward while walking/running. Carry them with the same
+        /// displacement. The hand model is a sibling aligned in LateUpdate,
+        /// possibly already this frame, so it moves too. Lagging item mode is
+        /// left alone: its delay is intentional.
+        /// </summary>
+        internal static void ShiftWithOrigin(Vector3 delta)
+        {
+            foreach (var inst in _instances)
+            {
+                if (inst == null || inst._itemLag != null) continue;
+                inst._anchor.position += delta;
+                if (inst._activeItem != null) inst._activeItem.rootPoint.position += delta;
+            }
+        }
         private readonly int[] _itemIDs = [0, 2, 5, 7, 9, 11];
         internal static HandHolder GetHand(int index) => _instances[index];
         internal void Init(int index)

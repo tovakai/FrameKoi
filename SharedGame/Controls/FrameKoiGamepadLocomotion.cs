@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using KK_VR.Controls;
+using KK_VR.Holders;
 using KK_VR.Interpreters;
 using KK_VR.Settings;
 using UnityEngine;
@@ -72,7 +73,10 @@ namespace KK_VR.Controls
             var delta = player.position - _lastPlayerPosition;
             _lastPlayerPosition = player.position;
             if (delta.sqrMagnitude < 4f)
+            {
                 VR.Camera.Origin.position += delta;
+                HandHolder.ShiftWithOrigin(delta);
+            }
             // Large scene/door warps use the existing ResetCamera/reload path.
         }
 
